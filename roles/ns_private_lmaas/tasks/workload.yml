@@ -1,0 +1,48 @@
+---
+# - name: The following variables are available
+#   ansible.builtin.debug:
+#     msg: "{{ item }}"
+#   loop:
+#   - "sandbox_openshift_api_key:              {{ sandbox_openshift_api_key }}"
+#   - "sandbox_openshift_api_token:            {{ sandbox_openshift_api_token }}"
+#   - "sandbox_openshift_api_url:              {{ sandbox_openshift_api_url }}"
+#   - "sandbox_openshift_apps_domain:          {{ sandbox_openshift_apps_domain }}"
+#   - "sandbox_openshift_cluster:              {{ sandbox_openshift_cluster }}"
+#   - "sandbox_openshift_console_url:          {{ sandbox_openshift_console_url }}"
+#   - "sandbox_openshift_credentials:          {{ sandbox_openshift_credentials }}"
+#   - "sandbox_openshift_name:                 {{ sandbox_openshift_name }}"
+#   - "sandbox_openshift_namespace:            {{ sandbox_openshift_namespace }}"
+#   - "sandbox_openshift_password:             {{ sandbox_openshift_password }}"
+#   - "sandbox_openshift_user:                 {{ sandbox_openshift_user }}"
+#   - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
+
+- name: Save AgnosticD user data
+  agnosticd.core.agnosticd_user_info:
+    data:
+      sandbox_openshift_namespace: "{{ sandbox_openshift_namespace }}"
+      sandbox_openshift_user: "{{ sandbox_openshift_user }}"
+      sandbox_openshift_password: "{{ sandbox_openshift_password }}"
+      sandbox_openshift_api_token: "{{ sandbox_openshift_api_token }}"
+      sandbox_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+      sandbox_openshift_console_url: "{{ sandbox_openshift_console_url }}"
+      sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
+
+- name: Create namespaces
+  kubernetes.core.k8s:
+    state: present
+    api_version: v1
+    kind: Namespace
+    name: "{{ namespace_prefix }}-{{ guid }}"
+  loop: "{{ ns_private_lmaas_namespace_prefixes }}"
+  loop_control:
+    loop_var: namespace_prefix
+
+- name: Create rolebindings
+  vars:
+    _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
+  kubernetes.core.k8s:
+    state: present
+    template: rolebinding.yaml.j2
+  loop: "{{ ns_private_lmaas_namespace_prefixes }}"
+  loop_control:
+    loop_var: namespace_prefix

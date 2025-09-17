@@ -1,10 +1,4 @@
 ---
-# ocp_username can be set by the provisioner if the workload is applied to a
-# shared cluster to set up for the requesting user.
-# The default, "system:admin", is not used for roles that are deployed as part of a whole
-# OpenShift cluster provision run.
-ocp_username: "system:admin"
-
 # If your workload needs customization options provide variables to be used.
 #
 # Variable names must be prefixed by the role name, e.g. "<role name>_<variable>".

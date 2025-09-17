@@ -1,0 +1,5 @@
+---
+# Namespaces to create and assign to the sandbox user. Actual namespaces will be {{ prefix }}-{{ guid }}.
+ns_private_lmaas_namespace_prefixes:
+- devspaces
+- llamastack
