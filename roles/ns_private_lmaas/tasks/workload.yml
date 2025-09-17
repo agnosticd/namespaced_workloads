@@ -30,9 +30,9 @@
 - name: Set up config on cluster as cluster admin
   # module_defaults:
   #   group/k8s:
-      host: "{{ sandbox_openshift_api_url }}"
-      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
-      validate_certs: false
+      # host: "{{ sandbox_openshift_api_url }}"
+      # api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+      # validate_certs: false
   block:
   - name: Create namespaces
     vars:
