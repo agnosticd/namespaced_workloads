@@ -26,3 +26,25 @@
   - "sandbox_openshift_password:             {{ sandbox_openshift_password }}"
   - "sandbox_openshift_user:                 {{ sandbox_openshift_user }}"
   - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
+
+- name: Save AgnosticD user data
+  agnosticd.common.agnosticd_user_info:
+    data:
+      sandbox_openshift_namespace: "{{ sandbox_openshift_namespace }}"
+      sandbox_openshift_user: "{{ sandbox_openshift_user }}"
+      sandbox_openshift_password: "{{ sandbox_openshift_password }}"
+      sandbox_openshift_api_token: "{{ sandbox_openshift_api_token }}"
+      sandbox_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+      sandbox_openshift_console_url: "{{ sandbox_openshift_console_url }}"
+      sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
+
+- name: Print AgnosticD user data
+  agnosticd.common.agnosticd_user_info:
+    msg: "{{ item }}"
+  loop:
+  - "Your Sandbox Namespace is: {{ sandbox_openshift_namespace }}"
+  - "User user '{{ sandbox_openshift_user }}' and password '{{ sandbox_openshift_password }}' to access your sandbox."
+  - "OpenShift API URL: {{ sandbox_openshift_api_url }}"
+  - "OpenShift Console URL: {{ sandbox_openshift_console_url }}"
+  - "OpenShift login command: 'oc login -u {{ sandbox_openshift_user }} -p {{ sandbox_openshift_password }} {{ sandbox_openshift_api_url }}'"
+  - "For programmatic access, use the following API token: {{ sandbox_openshift_api_token }}"
