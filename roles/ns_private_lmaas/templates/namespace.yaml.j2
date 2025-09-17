@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ _ns_private_lmaas_namespace }}
+  annotations:
+    openshift.io/requester: {{ sandbox_openshift_user }}
+  labels:
+    guid: {{ guid }}
+    role: agnosticd.namespaced_workloads.ns_private_lmaas

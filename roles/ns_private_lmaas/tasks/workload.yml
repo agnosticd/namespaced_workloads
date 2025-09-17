@@ -31,15 +31,15 @@
   module_defaults:
     group/k8s:
       host: "{{ sandbox_openshift_api_url }}"
-      api_key: "{{ sandbox_openshift_api_token }}"
+      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
       validate_certs: false
   block:
   - name: Create namespaces
+    vars:
+      _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
     kubernetes.core.k8s:
       state: present
-      api_version: v1
-      kind: Namespace
-      name: "{{ namespace_prefix }}-{{ guid }}"
+      template: namespace.yaml.j2
     loop: "{{ ns_private_lmaas_namespace_prefixes }}"
     loop_control:
       loop_var: namespace_prefix

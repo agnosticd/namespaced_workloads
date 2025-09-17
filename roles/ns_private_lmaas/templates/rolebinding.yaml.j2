@@ -4,6 +4,9 @@ kind: RoleBinding
 metadata:
   name: admin
   namespace: {{ _ns_private_lmaas_namespace }}
+  labels:
+    guid: {{ guid }}
+    role: agnosticd.namespaced_workloads.ns_private_lmaas
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
