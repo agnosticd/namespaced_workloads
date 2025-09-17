@@ -1,15 +1,18 @@
 ---
 - name: Remove config on cluster as cluster admin
-  module_defaults:
-    group/k8s:
-      host: "{{ sandbox_openshift_api_url }}"
-      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
-      validate_certs: false
+  # module_defaults:
+  #   group/k8s:
+  #     host: "{{ sandbox_openshift_api_url }}"
+  #     api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+  #     validate_certs: false
   block:
   - name: Remove rolebindings
     vars:
       _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
     kubernetes.core.k8s:
+      host: "{{ sandbox_openshift_api_url }}"
+      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+      validate_certs: false
       state: absent
       template: rolebinding.yaml.j2
     loop: "{{ ns_private_lmaas_namespace_prefixes }}"
@@ -18,6 +21,9 @@
 
   - name: Remove namespaces
     kubernetes.core.k8s:
+      host: "{{ sandbox_openshift_api_url }}"
+      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+      validate_certs: false
       state: absent
       api_version: v1
       kind: Namespace

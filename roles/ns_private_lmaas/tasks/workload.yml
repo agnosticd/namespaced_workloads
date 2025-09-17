@@ -28,8 +28,8 @@
       sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
 
 - name: Set up config on cluster as cluster admin
-  module_defaults:
-    group/k8s:
+  # module_defaults:
+  #   group/k8s:
       host: "{{ sandbox_openshift_api_url }}"
       api_key: "{{ cluster_admin_agnosticd_sa_token }}"
       validate_certs: false
@@ -38,6 +38,9 @@
     vars:
       _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
     kubernetes.core.k8s:
+      host: "{{ sandbox_openshift_api_url }}"
+      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+      validate_certs: false
       state: present
       template: namespace.yaml.j2
     loop: "{{ ns_private_lmaas_namespace_prefixes }}"
@@ -48,6 +51,9 @@
     vars:
       _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
     kubernetes.core.k8s:
+      host: "{{ sandbox_openshift_api_url }}"
+      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+      validate_certs: false
       state: present
       template: rolebinding.yaml.j2
     loop: "{{ ns_private_lmaas_namespace_prefixes }}"
