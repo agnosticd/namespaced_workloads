@@ -5,4 +5,4 @@
 
 - name: Deprovision your workload
   ansible.builtin.debug:
-    msg: "Deprovision is not implemented."
+    msg: "Nothing to deprovision for example workload."

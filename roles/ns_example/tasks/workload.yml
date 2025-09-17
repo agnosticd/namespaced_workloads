@@ -28,7 +28,7 @@
   - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
 
 - name: Save AgnosticD user data
-  agnosticd.common.agnosticd_user_info:
+  agnosticd.core.agnosticd_user_info:
     data:
       sandbox_openshift_namespace: "{{ sandbox_openshift_namespace }}"
       sandbox_openshift_user: "{{ sandbox_openshift_user }}"
@@ -39,7 +39,7 @@
       sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
 
 - name: Print AgnosticD user data
-  agnosticd.common.agnosticd_user_info:
+  agnosticd.core.agnosticd_user_info:
     msg: "{{ item }}"
   loop:
   - "Your Sandbox Namespace is: {{ sandbox_openshift_namespace }}"
