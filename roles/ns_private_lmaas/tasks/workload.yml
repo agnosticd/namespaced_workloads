@@ -1,20 +1,20 @@
 ---
-# - name: The following variables are available
-#   ansible.builtin.debug:
-#     msg: "{{ item }}"
-#   loop:
-#   - "sandbox_openshift_api_key:              {{ sandbox_openshift_api_key }}"
-#   - "sandbox_openshift_api_token:            {{ sandbox_openshift_api_token }}"
-#   - "sandbox_openshift_api_url:              {{ sandbox_openshift_api_url }}"
-#   - "sandbox_openshift_apps_domain:          {{ sandbox_openshift_apps_domain }}"
-#   - "sandbox_openshift_cluster:              {{ sandbox_openshift_cluster }}"
-#   - "sandbox_openshift_console_url:          {{ sandbox_openshift_console_url }}"
-#   - "sandbox_openshift_credentials:          {{ sandbox_openshift_credentials }}"
-#   - "sandbox_openshift_name:                 {{ sandbox_openshift_name }}"
-#   - "sandbox_openshift_namespace:            {{ sandbox_openshift_namespace }}"
-#   - "sandbox_openshift_password:             {{ sandbox_openshift_password }}"
-#   - "sandbox_openshift_user:                 {{ sandbox_openshift_user }}"
-#   - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
+- name: The following variables are available
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop:
+  - "sandbox_openshift_api_key:              {{ sandbox_openshift_api_key }}"
+  - "sandbox_openshift_api_token:            {{ sandbox_openshift_api_token }}"
+  - "sandbox_openshift_api_url:              {{ sandbox_openshift_api_url }}"
+  - "sandbox_openshift_apps_domain:          {{ sandbox_openshift_apps_domain }}"
+  - "sandbox_openshift_cluster:              {{ sandbox_openshift_cluster }}"
+  - "sandbox_openshift_console_url:          {{ sandbox_openshift_console_url }}"
+  - "sandbox_openshift_credentials:          {{ sandbox_openshift_credentials }}"
+  - "sandbox_openshift_name:                 {{ sandbox_openshift_name }}"
+  - "sandbox_openshift_namespace:            {{ sandbox_openshift_namespace }}"
+  - "sandbox_openshift_password:             {{ sandbox_openshift_password }}"
+  - "sandbox_openshift_user:                 {{ sandbox_openshift_user }}"
+  - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
 
 - name: Save AgnosticD user data
   agnosticd.core.agnosticd_user_info:
