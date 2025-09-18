@@ -72,12 +72,12 @@
         kind: DevWorkspace
         name: "{{ ns_private_lmaas_devworkspace_name }}"
         namespace: "{{ _ns_private_lmaas_namespace_devspaces }}"
-      wait: true
-      wait_sleep: 5
-      wait_timeout: 180
-      wait_condition:
-        type: "Ready"
-        status: "True"
+        wait: true
+        wait_sleep: 5
+        wait_timeout: 180
+        wait_condition:
+          type: "Ready"
+          status: "True"
       register: r_devworkspace
 
     - name: Save devworkspace route
