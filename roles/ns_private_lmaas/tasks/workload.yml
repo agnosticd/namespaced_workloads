@@ -28,15 +28,11 @@
       sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
 
 - name: Set up config on cluster as cluster admin
-  environment:
-    K8S_AUTH_HOST: "{{ sandbox_openshift_api_url }}"
-    K8S_AUTH_API_KEY: "{{ cluster_admin_agnosticd_sa_token }}"
-    K8S_AUTH_VERIFY_SSL: false
-  # module_defaults:
-  #   group/k8s:
-  #     host: "{{ sandbox_openshift_api_url }}"
-  #     api_key: "{{ cluster_admin_agnosticd_sa_token }}"
-  #     validate_certs: false
+  module_defaults:
+    group/k8s:
+      host: "{{ sandbox_openshift_api_url }}"
+      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+      validate_certs: false
   block:
   - name: Create namespaces
     vars:
@@ -64,3 +60,27 @@
     kubernetes.core.k8s:
       state: present
       template: devworkspace.yaml.j2
+
+  - name: Wait for devworkspace to be ready and get route
+    when: ns_private_lmaas_devworkspace_start | bool
+    vars:
+      _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
+    block:
+    - name: Wait for devworkspace to be ready
+      kubernetes.core.k8s_info:
+        api_version: workspace.devfile.io/v1alpha2
+        kind: DevWorkspace
+        name: "{{ ns_private_lmaas_devworkspace_name }}"
+        namespace: "{{ _ns_private_lmaas_namespace_devspaces }}"
+      wait: true
+      wait_sleep: 5
+      wait_timeout: 180
+      wait_condition:
+        type: "Ready"
+        status: "True"
+      register: r_devworkspace
+
+    - name: Save devworkspace route
+      agnosticd.core.agnosticd_user_info:
+        data:
+          devworkspace_route: "{{ r_devworkspace.resources[0].mainUrl }}"

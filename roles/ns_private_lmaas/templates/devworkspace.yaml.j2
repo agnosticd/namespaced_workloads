@@ -6,7 +6,7 @@ metadata:
   namespace: {{ _ns_private_lmaas_namespace_devspaces }}
 spec:
   routingClass: che
-  started: true
+  started: {{ ns_private_lmaas_devworkspace_start }}
   contributions:
   - name: ide
     uri: {{ ns_private_lmaas_devfile_url }}

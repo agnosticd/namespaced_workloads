@@ -6,6 +6,13 @@
       api_key: "{{ cluster_admin_agnosticd_sa_token }}"
       validate_certs: false
   block:
+  - name: Remove devworkspace
+    vars:
+      _ns_private_lmaas_namespace_devspaces: "{{ ns_private_lmaas_namespace_devspaces }}-{{ guid }}"
+    kubernetes.core.k8s:
+      state: absent
+      template: devworkspace.yaml.j2
+    
   - name: Remove rolebindings
     vars:
       _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
