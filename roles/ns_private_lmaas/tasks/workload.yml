@@ -65,4 +65,4 @@
     - name: Save DevWorkspace route
       agnosticd.core.agnosticd_user_info:
         data:
-          devworkspace_route: "{{ r_devworkspace.resources[0].mainUrl }}"
+          devworkspace_route: "{{ r_devworkspace.resources[0].status.mainUrl }}"
