@@ -57,3 +57,10 @@
     loop: "{{ ns_private_lmaas_namespace_prefixes }}"
     loop_control:
       loop_var: namespace_prefix
+
+  - name: Create devworkspace
+    vars:
+      _ns_private_lmaas_namespace_devspaces: "{{ ns_private_lmaas_namespace_devspaces }}-{{ guid }}"
+    kubernetes.core.k8s:
+      state: present
+      template: devworkspace.yaml.j2

@@ -1,5 +1,16 @@
 ---
+ns_private_lmaas_namespace_devspaces: devspaces
+ns_private_lmaas_devfile_url: http://devspaces-dashboard.openshift-devspaces.svc.cluster.local:8080/dashboard/api/editors/devfile?che-editor=che-incubator/che-code/latest
+ns_private_lmaas_devworkspace_name: exercises
+ns_private_lmaas_devworkspace_projects_repo_url: https://github.com/taylorjordanNC/coding-exercises
+ns_private_lmaas_devworkspace_projects_revision: main
+ns_private_lmaas_devworkspace_components:
+- name: tooling
+  container:
+    image: registry.redhat.io/devspaces/udi-rhel9:latest
+    sourceMapping: /projects
+
 # Namespaces to create and assign to the sandbox user. Actual namespaces will be {{ prefix }}-{{ guid }}.
 ns_private_lmaas_namespace_prefixes:
-- devspaces
+- "{{ ns_private_lmaas_namespace_devspaces }}"
 - llamastack

@@ -1,0 +1,22 @@
+---
+apiVersion: workspace.devfile.io/v1alpha2
+kind: DevWorkspace
+metadata:
+  name: exercises-{{ guid }}
+  namespace: {{ _ns_private_lmaas_namespace_devspaces }}
+spec:
+  routingClass: che
+  started: true
+  contributions:
+  - name: ide
+    uri: {{ ns_private_lmaas_devfile_url }}
+  template:
+    projects:
+    - name: {{ ns_private_lmaas_devworkspace_name }}
+      git:
+        remotes:
+          origin: {{ ns_private_lmaas_devworkspace_projects_repo_url }}
+        checkoutFrom:
+          revision: {{ ns_private_lmaas_devworkspace_projects_revision }}
+    components:
+      {{ ns_private_lmaas_devworkspace_components }}
