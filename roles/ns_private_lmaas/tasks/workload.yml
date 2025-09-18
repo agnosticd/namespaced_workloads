@@ -1,21 +1,4 @@
 ---
-- name: The following variables are available
-  ansible.builtin.debug:
-    msg: "{{ item }}"
-  loop:
-  - "sandbox_openshift_api_key:              {{ sandbox_openshift_api_key }}"
-  - "sandbox_openshift_api_token:            {{ sandbox_openshift_api_token }}"
-  - "sandbox_openshift_api_url:              {{ sandbox_openshift_api_url }}"
-  - "sandbox_openshift_apps_domain:          {{ sandbox_openshift_apps_domain }}"
-  - "sandbox_openshift_cluster:              {{ sandbox_openshift_cluster }}"
-  - "sandbox_openshift_console_url:          {{ sandbox_openshift_console_url }}"
-  - "sandbox_openshift_credentials:          {{ sandbox_openshift_credentials }}"
-  - "sandbox_openshift_name:                 {{ sandbox_openshift_name }}"
-  - "sandbox_openshift_namespace:            {{ sandbox_openshift_namespace }}"
-  - "sandbox_openshift_password:             {{ sandbox_openshift_password }}"
-  - "sandbox_openshift_user:                 {{ sandbox_openshift_user }}"
-  - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
-
 - name: Save AgnosticD user data
   agnosticd.core.agnosticd_user_info:
     data:
@@ -25,9 +8,8 @@
       sandbox_openshift_api_token: "{{ sandbox_openshift_api_token }}"
       sandbox_openshift_api_url: "{{ sandbox_openshift_api_url }}"
       sandbox_openshift_console_url: "{{ sandbox_openshift_console_url }}"
-      sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
 
-- name: Set up config on cluster as cluster admin
+- name: Set up workshop config on cluster as cluster admin
   module_defaults:
     group/k8s:
       host: "{{ sandbox_openshift_api_url }}"
@@ -54,19 +36,19 @@
     loop_control:
       loop_var: namespace_prefix
 
-  - name: Create devworkspace
+  - name: Create DevWorkspace
     vars:
       _ns_private_lmaas_namespace_devspaces: "{{ ns_private_lmaas_namespace_devspaces }}-{{ guid }}"
     kubernetes.core.k8s:
       state: present
       template: devworkspace.yaml.j2
 
-  - name: Wait for devworkspace to be ready and get route
+  - name: Wait for DevWorkspace to be ready and get route
     when: ns_private_lmaas_devworkspace_start | bool
     vars:
-      _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"
+      _ns_private_lmaas_namespace_devspaces: "{{ ns_private_lmaas_namespace_devspaces }}-{{ guid }}"
     block:
-    - name: Wait for devworkspace to be ready
+    - name: Wait for DevWorkspace to be ready
       kubernetes.core.k8s_info:
         api_version: workspace.devfile.io/v1alpha2
         kind: DevWorkspace
@@ -80,7 +62,7 @@
           status: "True"
       register: r_devworkspace
 
-    - name: Save devworkspace route
+    - name: Save DevWorkspace route
       agnosticd.core.agnosticd_user_info:
         data:
           devworkspace_route: "{{ r_devworkspace.resources[0].mainUrl }}"
