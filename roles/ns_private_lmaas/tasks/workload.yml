@@ -28,11 +28,15 @@
       sandbox_openshift_apps_domain: "{{ sandbox_openshift_apps_domain }}"
 
 - name: Set up config on cluster as cluster admin
-  module_defaults:
-    group/k8s:
-      host: "{{ sandbox_openshift_api_url }}"
-      api_key: "{{ cluster_admin_agnosticd_sa_token }}"
-      validate_certs: false
+  environment:
+    K8S_AUTH_HOST: "{{ sandbox_openshift_api_url }}"
+    K8S_AUTH_API_KEY: "{{ cluster_admin_agnosticd_sa_token }}"
+    K8S_AUTH_VERIFY_SSL: false
+  # module_defaults:
+  #   group/k8s:
+  #     host: "{{ sandbox_openshift_api_url }}"
+  #     api_key: "{{ cluster_admin_agnosticd_sa_token }}"
+  #     validate_certs: false
   block:
   - name: Create namespaces
     vars:
