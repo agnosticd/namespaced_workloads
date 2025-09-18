@@ -52,7 +52,7 @@
       kubernetes.core.k8s_info:
         api_version: workspace.devfile.io/v1alpha2
         kind: DevWorkspace
-        name: "{{ ns_private_lmaas_devworkspace_name }}"
+        name: "{{ ns_private_lmaas_namespace_devspace_name }}"
         namespace: "{{ _ns_private_lmaas_namespace_devspaces }}"
         wait: true
         wait_sleep: 3

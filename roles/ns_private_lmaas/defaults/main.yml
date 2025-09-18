@@ -2,6 +2,7 @@
 ns_private_lmaas_namespace_devspaces_operator_namespace: openshift-operators
 
 ns_private_lmaas_namespace_devspaces: devspaces
+ns_private_lmaas_namespace_devspace_name: "exercises-{{ guid }}"
 ns_private_lmaas_devfile_url: "http://devspaces-dashboard.{{ ns_private_lmaas_namespace_devspaces_operator_namespace }}.svc.cluster.local:8080/dashboard/api/editors/devfile?che-editor=che-incubator/che-code/latest"
 ns_private_lmaas_devworkspace_name: exercises
 ns_private_lmaas_devworkspace_projects_repo_url: https://github.com/taylorjordanNC/coding-exercises
