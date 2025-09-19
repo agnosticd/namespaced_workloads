@@ -13,6 +13,10 @@ ns_private_lmaas_devworkspace_components:
   container:
     image: registry.redhat.io/devspaces/udi-rhel9:latest
     sourceMapping: /projects
+    cpuLimit: "2"
+    cpuRequest: "2"
+    memoryLimit: 2Gi
+    memoryRequest: 2Gi
 
 # Namespaces to create and assign to the sandbox user. Actual namespaces will be {{ prefix }}-{{ guid }}.
 ns_private_lmaas_namespace_prefixes:
