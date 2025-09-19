@@ -76,10 +76,11 @@
 - name: Save MaaS access credentials
   when: ns_private_lmaas_models | default([]) | length > 0
   agnosticd.core.agnosticd_user_info:
-    data:
-      "ns_private_lmaas_model_{{ model_index }}_url": "{{ model.url }}"
-      "ns_private_lmaas_model_{{ model_index }}_name": "{{ model.name }}"
-      "ns_private_lmaas_model_{{ model_index }}_token": "{{ model.token }}"
+    data: "{{ {
+      'ns_private_lmaas_model_' + model_index|string + '_url': model.url,
+      'ns_private_lmaas_model_' + model_index|string + '_name': model.name,
+      'ns_private_lmaas_model_' + model_index|string + '_token': model.token
+    } }}"
   loop: "{{ ns_private_lmaas_models }}"
   loop_control:
     loop_var: model
