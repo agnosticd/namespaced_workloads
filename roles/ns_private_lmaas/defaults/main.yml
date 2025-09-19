@@ -18,3 +18,12 @@ ns_private_lmaas_devworkspace_components:
 ns_private_lmaas_namespace_prefixes:
 - "{{ ns_private_lmaas_namespace_devspaces }}"
 - llamastack
+
+# Until we have MaaS Sandbox API set these in the AgV config with the token vaulted
+# Array of models to provide to the lab user
+ns_private_lmaas_models: []
+
+# ns_private_lmaas_models:
+# - name: "<TBD: Name of the Model>"
+#   url: "<TBD: URL of the Model>"
+#   token: "<TBD: Vaulted token - or Sandbox API>"

@@ -70,3 +70,18 @@
       agnosticd.core.agnosticd_user_info:
         data:
           devworkspace_route: "{{ r_devworkspace.resources[0].status.mainUrl }}"
+
+# TBD: Either dynamically create access - or use MaaS Sandbox API when it's implemented
+#      Until then the values come from the AgV config (with the token vaulted)
+- name: Save MaaS access credentials
+  when: ns_private_lmaas_models | default([]) | length > 0
+  agnosticd.core.agnosticd_user_info:
+    data:
+      "ns_private_lmaas_model_{{ model_index }}_url": "{{ model.url }}"
+      "ns_private_lmaas_model_{{ model_index }}_name": "{{ model.name }}"
+      "ns_private_lmaas_model_{{ model_index }}_token": "{{ model.token }}"
+  loop: "{{ ns_private_lmaas_models }}"
+  loop_control:
+    loop_var: model
+    index_var: model_index
+    label: "{{ model.name }}"
