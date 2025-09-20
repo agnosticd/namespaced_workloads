@@ -4,6 +4,9 @@ kind: DevWorkspace
 metadata:
   name: {{ ns_private_lmaas_namespace_devspace_name }}
   namespace: {{ _ns_private_lmaas_namespace_devspaces }}
+  labels:
+    guid: "{{ guid }}"
+    creator: agnosticd.namespaced_workloads.ns_private_lmaas
 spec:
   routingClass: che
   started: {{ ns_private_lmaas_devworkspace_start }}
