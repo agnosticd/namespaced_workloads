@@ -3,7 +3,7 @@
 # To Do: Implement your workload deployment tasks here
 # -------------------------------------------------------------------------
 
-- name: Example workload, print examplevariable values
+- name: Example workload, print example variable values
   ansible.builtin.debug:
     msg: "{{ item }}"
   loop:
