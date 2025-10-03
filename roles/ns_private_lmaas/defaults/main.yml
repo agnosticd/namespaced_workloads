@@ -35,3 +35,4 @@ ns_private_lmaas_models: []
 # Manually install LLamaStack Operator on the cluster from
 # https://raw.githubusercontent.com/llamastack/llama-stack-k8s-operator/v0.3.0/release/operator.yaml
 # Replace operator image with quay.io/eformat/llama-stack-k8s-operator:v0.3.0
+# Update operator env variables OPERATOR_VERSION and LLAMA_STACK_VERSION to latest
