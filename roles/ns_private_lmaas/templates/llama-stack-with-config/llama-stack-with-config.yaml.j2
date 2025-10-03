@@ -1,0 +1,27 @@
+---
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: llamastack
+  namespace: {{ _ns_private_lmaas_namespace }}
+spec:
+  replicas: 1
+  server:
+    containerSpec:
+      env:
+      - name: GRANITE_VLLM
+        valueFrom:
+          secretKeyRef:
+            name: llama-stack-env-secret
+            key: GRANITE_VLLM
+      - name: GRANITE_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: llama-stack-env-secret
+            key: GRANITE_TOKEN
+      name: llama-stack
+      port: 8321
+    distribution:
+      name: remote-vllm
+    userConfig:
+      configMapName: llama-stack-config
