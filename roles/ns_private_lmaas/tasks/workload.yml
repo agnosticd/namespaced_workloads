@@ -117,7 +117,7 @@
   - name: Save LLamaStack Playground route to agnosticd_user_info
     agnosticd.core.agnosticd_user_info:
       data:
-        llama_stack_playground_route: "{{ r_llama_stack_playground_route.resources[0].spec.host }}"
+        llama_stack_playground_route: "https://{{ r_llama_stack_playground_route.resources[0].spec.host }}"
 
 # TBD: Either dynamically create access - or use MaaS Sandbox API when it's implemented
 #      Until then the values come from the AgV config (with the token vaulted)
