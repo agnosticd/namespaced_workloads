@@ -23,21 +23,21 @@ data:
       - provider_id: vllm
         provider_type: remote::vllm
         config:
-          url: ${env.GRANITE_URL:http://granite-3dot2-8b-instruct-predictor.llm-hosting.svc.cluster.local:8080/v1}
+          url: {{ ns_private_lmaas_granite_url }}
           tls_verify: false
-          api_token: ${env.GRANITE_TOKEN:fake}
+          api_token: {{ ns_private_lmaas_granite_token }}
           #max_tokens: 12000
           #tls_verify: false
       - provider_id: sentence-transformers
         provider_type: inline::sentence-transformers
         config: {}
-      - provider_id: vllm-safety
-        provider_type: remote::vllm
-        config:
-          url: ${env.SAFETY_MODEL:http://llama-guard-3-1b-predictor.llm-hosting.svc.cluster.local:8080/v1}
-          max_tokens: ${env.VLLM_MAX_TOKENS:4096}
-          api_token: ${env.VLLM_API_TOKEN:fake}
-          tls_verify: ${env.VLLM_TLS_VERIFY:false}
+      # - provider_id: vllm-safety
+      #   provider_type: remote::vllm
+      #   config:
+      #     url: ${env.SAFETY_MODEL:http://llama-guard-3-1b-predictor.llm-hosting.svc.cluster.local:8080/v1}
+      #     max_tokens: ${env.VLLM_MAX_TOKENS:4096}
+      #     api_token: ${env.VLLM_API_TOKEN:fake}
+      #     tls_verify: ${env.VLLM_TLS_VERIFY:false}
       agents:
       - provider_id: meta-reference
         provider_type: inline::meta-reference
@@ -119,20 +119,20 @@ data:
       db_path: ${env.SQLITE_STORE_DIR:~/.llama/distributions/remote-vllm}/registry.db
     models:
     - metadata: {}
-      model_id: granite-3dot2-8b-instruct
+      model_id: granite-8b-code-instruct-128k
       provider_id: vllm
-      provider_model_id: granite-3dot2-8b-instruct
+      provider_model_id: granite-8b-code-instruct-128k
       model_type: llm
-    - metadata:
-        embedding_dimension: 384
-      model_id: all-MiniLM-L6-v2
-      provider_id: sentence-transformers
-      model_type: embedding
-    - metadata: {}
-      model_id: ${env.SAFETY_MODEL:meta-llama/Llama-Guard-3-1B}
-      #provider_model_id: ${env.SAFETY_MODEL:llama-guard-3-1b}
-      provider_id: vllm-safety
-      model_type: llm
+    # - metadata:
+    #     embedding_dimension: 384
+    #   model_id: all-MiniLM-L6-v2
+    #   provider_id: sentence-transformers
+    #   model_type: embedding
+    # - metadata: {}
+    #   model_id: ${env.SAFETY_MODEL:meta-llama/Llama-Guard-3-1B}
+    #   #provider_model_id: ${env.SAFETY_MODEL:llama-guard-3-1b}
+    #   provider_id: vllm-safety
+    #   model_type: llm
     datasets: []
     vector_dbs: []
     scoring_fns: []
