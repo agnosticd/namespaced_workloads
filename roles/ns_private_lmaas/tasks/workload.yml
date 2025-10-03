@@ -111,7 +111,7 @@
       api_version: route.openshift.io/v1
       kind: Route
       name: llama-stack-playground
-      namespace: "{{ _ns_private_lmaas_namespace }}"
+      namespace: "llamastack-{{ guid }}"
     register: r_llama_stack_playground_route
 
   - name: Save LLamaStack Playground route to agnosticd_user_info
