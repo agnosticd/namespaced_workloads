@@ -90,6 +90,7 @@
       state: present
       template: "{{ item }}"
     loop:
+    - llama-stack-with-config/secret.yaml.j2
     - llama-stack-with-config/configmap.yaml.j2
     - llama-stack-with-config/llama-stack-with-config.yaml.j2
 
