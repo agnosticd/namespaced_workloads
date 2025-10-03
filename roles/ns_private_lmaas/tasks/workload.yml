@@ -66,7 +66,7 @@
       ansible.builtin.debug:
         msg: "{{ r_devworkspace }}"
 
-    - name: Save DevWorkspace route
+    - name: Save DevWorkspace route to agnosticd_user_info
       agnosticd.core.agnosticd_user_info:
         data:
           devworkspace_route: "{{ r_devworkspace.resources[0].status.mainUrl }}"
@@ -105,6 +105,19 @@
     - llama-stack-playground/deployment.yaml.j2
     - llama-stack-playground/service.yaml.j2
     - llama-stack-playground/route.yaml.j2
+
+  - name: Get LLamaStack Playground route
+    kubernetes.core.k8s_info:
+      api_version: route.openshift.io/v1
+      kind: Route
+      name: llama-stack-playground
+      namespace: "{{ _ns_private_lmaas_namespace }}"
+    register: r_llama_stack_playground_route
+
+  - name: Save LLamaStack Playground route to agnosticd_user_info
+    agnosticd.core.agnosticd_user_info:
+      data:
+        llama_stack_playground_route: "{{ r_llama_stack_playground_route.resources[0].spec.host }}"
 
 # TBD: Either dynamically create access - or use MaaS Sandbox API when it's implemented
 #      Until then the values come from the AgV config (with the token vaulted)
