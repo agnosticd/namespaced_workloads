@@ -71,6 +71,40 @@
         data:
           devworkspace_route: "{{ r_devworkspace.resources[0].status.mainUrl }}"
 
+  - name: Deploy OpenShift MCP Server
+    vars:
+      _ns_private_lmaas_namespace: "llamastack-{{ guid }}"
+    kubernetes.core.k8s:
+      state: present
+      template: "{{ item }}"
+    loop:
+    - mcp/serviceaccount.yaml.j2
+    - mcp/rolebinding.yaml.j2
+    - mcp/deployment.yaml.j2
+    - mcp/service.yaml.j2
+
+  - name: Deploy LLamaStack
+    vars:
+      _ns_private_lmaas_namespace: "llamastack-{{ guid }}"
+    kubernetes.core.k8s:
+      state: present
+      template: "{{ item }}"
+    loop:
+    - llama-stack-with-config/configmap.yaml.j2
+    - llama-stack-with-config/llama-stack-with-config.yaml.j2
+
+  - name: Deploy LLamaStack Playground
+    vars:
+      _ns_private_lmaas_namespace: "llamastack-{{ guid }}"
+    kubernetes.core.k8s:
+      state: present
+      template: "{{ item }}"
+    loop:
+    - llama-stack-playground/serviceaccount.yaml.j2
+    - llama-stack-playground/deployment.yaml.j2
+    - llama-stack-playground/service.yaml.j2
+    - llama-stack-playground/route.yaml.j2
+
 # TBD: Either dynamically create access - or use MaaS Sandbox API when it's implemented
 #      Until then the values come from the AgV config (with the token vaulted)
 - name: Save MaaS access credentials

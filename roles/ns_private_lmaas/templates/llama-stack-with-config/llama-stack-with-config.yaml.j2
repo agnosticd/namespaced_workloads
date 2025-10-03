@@ -1,0 +1,20 @@
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  name: llamastack
+  namespace: {{ _ns_private_lmaas_namespace }}
+spec:
+  replicas: 1
+  server:
+    containerSpec:
+      env:
+        - name: GRANITE_VLLM
+          value: 'http://granite-3dot2-8b-instruct-predictor.llm-hosting.svc.cluster.local:8080/v1'
+        - name: GRANITE_TOKEN
+          value: openshift
+      name: llama-stack
+      port: 8321
+    distribution:
+      name: remote-vllm
+    userConfig:
+      configMapName: llama-stack-config
