@@ -31,13 +31,13 @@ data:
       - provider_id: sentence-transformers
         provider_type: inline::sentence-transformers
         config: {}
-      # - provider_id: vllm-safety
-      #   provider_type: remote::vllm
-      #   config:
-      #     url: ${env.SAFETY_MODEL:http://llama-guard-3-1b-predictor.llm-hosting.svc.cluster.local:8080/v1}
-      #     max_tokens: ${env.VLLM_MAX_TOKENS:4096}
-      #     api_token: ${env.VLLM_API_TOKEN:fake}
-      #     tls_verify: ${env.VLLM_TLS_VERIFY:false}
+      - provider_id: vllm-safety
+        provider_type: remote::vllm
+        config:
+          url: {{ ns_private_lmaas_guardian_url }}
+          max_tokens: 4096
+          api_token: {{ ns_private_lmaas_guardian_token}}
+          tls_verify: VLLM_TLS_VERIFY
       agents:
       - provider_id: meta-reference
         provider_type: inline::meta-reference
