@@ -128,11 +128,10 @@ data:
     #   model_id: all-MiniLM-L6-v2
     #   provider_id: sentence-transformers
     #   model_type: embedding
-    # - metadata: {}
-    #   model_id: ${env.SAFETY_MODEL:meta-llama/Llama-Guard-3-1B}
-    #   #provider_model_id: ${env.SAFETY_MODEL:llama-guard-3-1b}
-    #   provider_id: vllm-safety
-    #   model_type: llm
+    - metadata: {}
+      model_id: granite3-guardian-2b
+      provider_id: vllm-safety
+      model_type: llm
     datasets: []
     vector_dbs: []
     scoring_fns: []
