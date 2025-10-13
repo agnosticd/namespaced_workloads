@@ -56,7 +56,7 @@
         namespace: "{{ _ns_private_lmaas_namespace_devspaces }}"
         wait: true
         wait_sleep: 3
-        wait_timeout: 120
+        wait_timeout: 300
         wait_condition:
           type: "Ready"
           status: "True"

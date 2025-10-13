@@ -27,7 +27,6 @@ data:
           tls_verify: false
           api_token: {{ ns_private_lmaas_granite_token }}
           #max_tokens: 12000
-          #tls_verify: false
       - provider_id: sentence-transformers
         provider_type: inline::sentence-transformers
         config: {}
@@ -37,7 +36,7 @@ data:
           url: {{ ns_private_lmaas_guardian_url }}
           max_tokens: 4096
           api_token: {{ ns_private_lmaas_guardian_token}}
-          tls_verify: VLLM_TLS_VERIFY
+          tls_verify: false
       agents:
       - provider_id: meta-reference
         provider_type: inline::meta-reference
@@ -118,26 +117,22 @@ data:
       type: sqlite
       db_path: ${env.SQLITE_STORE_DIR:~/.llama/distributions/remote-vllm}/registry.db
     models:
-    - metadata: {}
-      model_id: granite-8b-code-instruct-128k
+    - metadata:
+        embedding_dimension: 384
+      model_id: granite-3-2-8b-instruct
       provider_id: vllm
-      provider_model_id: granite-8b-code-instruct-128k
+      provider_model_id: granite-3-2-8b-instruct
       model_type: llm
-    # - metadata:
-    #     embedding_dimension: 384
-    #   model_id: all-MiniLM-L6-v2
-    #   provider_id: sentence-transformers
-    #   model_type: embedding
     - metadata: {}
-      model_id: granite3-guardian-2b
+      model_id: llama-guard-3-1b
       provider_id: vllm-safety
       model_type: llm
     datasets: []
     vector_dbs: []
     scoring_fns: []
     benchmarks: []
-    # shields:
-    # - shield_id: ${env.SAFETY_MODEL:meta-llama/Llama-Guard-3-1B}
+    shields:
+    - shield_id: ${env.SAFETY_MODEL:llama-guard-3-1b}
     tool_groups:
     - provider_id: tavily-search
       toolgroup_id: builtin::websearch
