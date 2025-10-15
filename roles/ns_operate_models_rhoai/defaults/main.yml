@@ -1,0 +1,16 @@
+---
+# If your workload needs customization options provide variables to be used.
+#
+# Variable names must be prefixed by the role name, e.g. "<role name>_<variable>".
+#
+# Therefore because this workload is called "ns_operate_models_rhoai" the variables
+# must be named "ns_operate_models_rhoai_variable".
+#
+# You can override the defaults as parameters to the Ansible run that deploys
+# your workload via the AgnosticV configuration.
+
+# Documentation for variable 1 (what does it do? what are valid options?)
+ns_operate_models_rhoai_variable_1: "value 1"
+
+# Documentation for variable 2 (what does it do? what are valid options?)
+ns_operate_models_rhoai_variable_2: "value 2"
