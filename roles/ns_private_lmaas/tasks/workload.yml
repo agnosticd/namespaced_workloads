@@ -71,7 +71,7 @@
         data:
           devworkspace_route: "{{ r_devworkspace.resources[0].status.mainUrl }}"
 
-  - name: Deploy OpenShift MCP Server
+  - name: Deploy OpenShift MCP server
     vars:
       _ns_private_lmaas_namespace: "llamastack-{{ guid }}"
     kubernetes.core.k8s:
@@ -82,6 +82,16 @@
     - mcp/rolebinding.yaml.j2
     - mcp/deployment.yaml.j2
     - mcp/service.yaml.j2
+
+  - name: Deploy OpenShift MCP server service account role bindings
+    vars:
+      _ns_private_lmaas_namespace: "llamastack-{{ guid }}"
+    kubernetes.core.k8s:
+      state: present
+      template: mcp/rolebinding-serviceaccount.yaml.j2
+    loop: "{{ ns_private_lmaas_namespace_prefixes }}"
+    loop_control:
+      loop_var: namespace_prefix
 
   - name: Deploy LLamaStack
     vars:
@@ -126,6 +136,7 @@
   agnosticd.core.agnosticd_user_info:
     data: "{{ {
       'ns_private_lmaas_model_' + model_index|string + '_name': model.name,
+      'ns_private_lmaas_model_' + model_index|string + '_id': model.id,
       'ns_private_lmaas_model_' + model_index|string + '_url': model.url,
       'ns_private_lmaas_model_' + model_index|string + '_token': model.token
     } }}"
