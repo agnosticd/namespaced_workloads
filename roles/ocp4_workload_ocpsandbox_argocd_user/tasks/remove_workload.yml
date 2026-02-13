@@ -1,0 +1,95 @@
+---
+# Thorough ArgoCD cleanup for long-running shared clusters.
+# Order: ApplicationSets -> Applications -> wait -> AppProject
+
+- name: Get all ApplicationSets in ArgoCD namespace
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: argoproj.io/v1alpha1
+    kind: ApplicationSet
+    namespace: "{{ ocp4_workload_ocpsandbox_argocd_user_namespace }}"
+  register: r_argocd_appsets
+
+- name: Remove ApplicationSets belonging to user's project
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: argoproj.io/v1alpha1
+    kind: ApplicationSet
+    name: "{{ appset_item.metadata.name }}"
+    namespace: "{{ ocp4_workload_ocpsandbox_argocd_user_namespace }}"
+  loop: >-
+    {{ r_argocd_appsets.resources
+       | selectattr('spec.template.spec.project', 'defined')
+       | selectattr('spec.template.spec.project', 'equalto',
+           ocp4_workload_ocpsandbox_argocd_user_project_prefix ~ ocp4_workload_ocpsandbox_argocd_user_username)
+       | list }}
+  loop_control:
+    loop_var: appset_item
+    label: "{{ appset_item.metadata.name }}"
+  ignore_errors: true
+
+- name: Get all Applications in ArgoCD namespace
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    namespace: "{{ ocp4_workload_ocpsandbox_argocd_user_namespace }}"
+  register: r_argocd_apps
+
+- name: Remove Applications belonging to user's project
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: "{{ app_item.metadata.name }}"
+    namespace: "{{ ocp4_workload_ocpsandbox_argocd_user_namespace }}"
+  loop: >-
+    {{ r_argocd_apps.resources
+       | selectattr('spec.project', 'equalto',
+           ocp4_workload_ocpsandbox_argocd_user_project_prefix ~ ocp4_workload_ocpsandbox_argocd_user_username)
+       | list }}
+  loop_control:
+    loop_var: app_item
+    label: "{{ app_item.metadata.name }}"
+  ignore_errors: true
+
+- name: Wait for Applications to be fully removed
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    namespace: "{{ ocp4_workload_ocpsandbox_argocd_user_namespace }}"
+  register: r_remaining_apps
+  retries: 30
+  delay: 10
+  until: >-
+    r_remaining_apps.resources
+    | selectattr('spec.project', 'equalto',
+        ocp4_workload_ocpsandbox_argocd_user_project_prefix ~ ocp4_workload_ocpsandbox_argocd_user_username)
+    | list
+    | length == 0
+  ignore_errors: true
+
+- name: Delete ArgoCD AppProject
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: argoproj.io/v1alpha1
+    kind: AppProject
+    name: "{{ ocp4_workload_ocpsandbox_argocd_user_project_prefix }}{{ ocp4_workload_ocpsandbox_argocd_user_username }}"
+    namespace: "{{ ocp4_workload_ocpsandbox_argocd_user_namespace }}"
+  ignore_errors: true

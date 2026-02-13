@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ocp4_workload_ocpsandbox_keycloak_user
+  author: Red Hat, Prakhar Srivastava
+  description: |
+    Dynamic Keycloak user provisioning on shared OCP clusters.
+    Sets up kubeconfig, discovers cluster info, creates Keycloak user via REST API.
+    Designed for namespace config with sandbox API pattern.
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms: []
+  galaxy_tags:
+  - ocp
+  - openshift
+  - keycloak
+dependencies: []

@@ -1,0 +1,152 @@
+---
+# Thorough cleanup for long-running shared clusters.
+
+- name: Set up cluster access for destroy
+  ansible.builtin.include_tasks: setup_kubeconfig.yml
+
+# -----------------------------------------------
+# Keycloak user cleanup
+# -----------------------------------------------
+- name: Get Keycloak admin credentials from secret
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp4_workload_ocpsandbox_keycloak_user_keycloak_admin_secret }}"
+    namespace: "{{ ocp4_workload_ocpsandbox_keycloak_user_keycloak_namespace }}"
+  register: r_keycloak_admin_secret
+
+- name: Set Keycloak admin credentials
+  ansible.builtin.set_fact:
+    _ocp4_workload_ocpsandbox_keycloak_user_keycloak_admin_user: >-
+      {{ r_keycloak_admin_secret.resources[0].data.username | b64decode }}
+    _ocp4_workload_ocpsandbox_keycloak_user_keycloak_admin_password: >-
+      {{ r_keycloak_admin_secret.resources[0].data.password | b64decode }}
+    _ocp4_workload_ocpsandbox_keycloak_user_keycloak_host: >-
+      https://sso.{{ _ocp4_workload_ocpsandbox_keycloak_user_ingress_domain }}
+
+- name: Get Keycloak admin access token
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_ocpsandbox_keycloak_user_keycloak_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    validate_certs: false
+    body_format: form-urlencoded
+    body:
+      client_id: admin-cli
+      username: "{{ _ocp4_workload_ocpsandbox_keycloak_user_keycloak_admin_user }}"
+      password: "{{ _ocp4_workload_ocpsandbox_keycloak_user_keycloak_admin_password }}"
+      grant_type: password
+  register: r_keycloak_token
+
+- name: Get user ID from Keycloak
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_ocpsandbox_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_ocpsandbox_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_ocpsandbox_keycloak_user_username }}&exact=true"
+    method: GET
+    validate_certs: false
+    headers:
+      Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+  register: r_keycloak_user
+
+- name: Delete user from Keycloak
+  when: r_keycloak_user.json | length > 0
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_ocpsandbox_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_ocpsandbox_keycloak_user_keycloak_realm }}/users/{{ r_keycloak_user.json[0].id }}"
+    method: DELETE
+    validate_certs: false
+    headers:
+      Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+    status_code: 204
+
+# -----------------------------------------------
+# OCP Identity and User cleanup
+# -----------------------------------------------
+- name: Delete OCP Identity for Keycloak user
+  when: r_keycloak_user.json | length > 0
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: user.openshift.io/v1
+    kind: Identity
+    name: "rhbk:{{ r_keycloak_user.json[0].id }}"
+  ignore_errors: true
+
+- name: Delete OCP User object
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: user.openshift.io/v1
+    kind: User
+    name: "{{ ocp4_workload_ocpsandbox_keycloak_user_username }}"
+  ignore_errors: true
+
+# -----------------------------------------------
+# Delete all namespaces owned by this user
+# -----------------------------------------------
+- name: Get all namespaces matching user pattern
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Namespace
+  register: r_all_namespaces
+
+- name: Delete namespaces ending with user identifier
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ ns_item.metadata.name }}"
+  loop: >-
+    {{ r_all_namespaces.resources
+       | selectattr('metadata.name', 'match', '.*-' ~ ocp4_workload_ocpsandbox_keycloak_user_username ~ '$')
+       | list }}
+  loop_control:
+    loop_var: ns_item
+    label: "{{ ns_item.metadata.name }}"
+  ignore_errors: true
+
+# -----------------------------------------------
+# Cleanup cluster-scoped resources for user
+# -----------------------------------------------
+- name: Get ClusterRoleBindings
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+  register: r_crbs
+
+- name: Remove ClusterRoleBindings referencing user
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    name: "{{ crb_item.metadata.name }}"
+  loop: >-
+    {{ r_crbs.resources
+       | selectattr('subjects', 'defined')
+       | selectattr('metadata.name', 'search', ocp4_workload_ocpsandbox_keycloak_user_username)
+       | list }}
+  loop_control:
+    loop_var: crb_item
+    label: "{{ crb_item.metadata.name }}"
+  ignore_errors: true
+
+- name: Remove kubeconfig
+  ansible.builtin.file:
+    path: "{{ lookup('env', 'HOME') }}/.kube/config"
+    state: absent
