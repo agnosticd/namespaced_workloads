@@ -148,5 +148,5 @@
 
 - name: Remove kubeconfig
   ansible.builtin.file:
-    path: "{{ lookup('env', 'HOME') }}/.kube/config"
+    path: "{{ lookup('env', 'KUBECONFIG') | default(lookup('env', 'HOME') ~ '/.kube/config', true) }}"
     state: absent
