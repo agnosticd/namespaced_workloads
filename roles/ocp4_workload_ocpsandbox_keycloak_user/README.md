@@ -4,7 +4,9 @@ User provisioning role for OcpSandbox clusters with Keycloak (RHBK) authenticati
 
 ## When to Use
 
-Use this role as the **first workload** in any OcpSandbox (`config: namespace`) catalog item where the cluster uses Keycloak for authentication. It handles kubeconfig setup, cluster discovery, and user creation -- things that `config: namespace` does NOT do automatically.
+Use this role as the **first workload** in any OcpSandbox (`config: namespace`) catalog item where the cluster uses Red Hat build of Keycloak (RHBK) for authentication. It handles kubeconfig setup, cluster discovery, and user creation -- things that `config: namespace` does NOT do automatically.
+
+This role is specifically for clusters where RHBK is the OAuth identity provider (deployed via `ocp4_workload_authentication_keycloak`). If the cluster uses htpasswd or another auth method, this role is not applicable.
 
 ## Why It Exists
 
