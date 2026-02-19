@@ -13,3 +13,11 @@ ocp4_workload_ocpsandbox_argocd_user_cluster_resource_whitelist: []
 # Example:
 # - group: ""
 #   kind: Namespace
+
+# Extra destination namespaces to allow in the AppProject.
+# By default the project allows *-{{ username }}. Use this list
+# to add namespaces that don't match that pattern (e.g. the
+# primary sandbox namespace created by the sandbox API).
+ocp4_workload_ocpsandbox_argocd_user_extra_destinations: []
+# Example:
+# - "sandbox-abc12-agent"

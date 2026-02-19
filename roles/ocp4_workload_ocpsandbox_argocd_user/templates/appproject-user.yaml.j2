@@ -11,6 +11,10 @@ spec:
   destinations:
   - namespace: "*-{{ ocp4_workload_ocpsandbox_argocd_user_username }}"
     server: https://kubernetes.default.svc
+{% for ns in ocp4_workload_ocpsandbox_argocd_user_extra_destinations %}
+  - namespace: "{{ ns }}"
+    server: https://kubernetes.default.svc
+{% endfor %}
   sourceRepos:
   - "*"
   clusterResourceWhitelist:
