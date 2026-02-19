@@ -1,0 +1,11 @@
+---
+# Gitea instance cleanup.
+# The Gitea CR and all resources (Deployment, Service, Route, PVCs)
+# live inside the namespace which is deleted by sandbox API.
+# No explicit cleanup needed here.
+
+- name: Gitea instance cleanup handled by sandbox API
+  ansible.builtin.debug:
+    msg: >-
+      Gitea instance in namespace {{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}
+      will be cleaned up when sandbox API deletes the namespace.

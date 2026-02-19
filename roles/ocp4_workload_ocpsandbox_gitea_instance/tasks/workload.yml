@@ -1,0 +1,79 @@
+---
+# ==================================================================
+# Deploy per-user Gitea instance via Gitea operator CR
+# Namespace is created by sandbox API
+# ==================================================================
+- name: Deploy Gitea instance CR
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: pfe.rhpds.com/v1
+      kind: Gitea
+      metadata:
+        name: gitea
+        namespace: "{{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}"
+      spec:
+        giteaImage: "{{ ocp4_workload_ocpsandbox_gitea_instance_image }}"
+        giteaImageTag: "{{ ocp4_workload_ocpsandbox_gitea_instance_image_tag }}"
+        giteaVolumeSize: "{{ ocp4_workload_ocpsandbox_gitea_instance_volume_size }}"
+        postgresqlImage: "{{ ocp4_workload_ocpsandbox_gitea_instance_postgresql_image }}"
+        postgresqlImageTag: "{{ ocp4_workload_ocpsandbox_gitea_instance_postgresql_image_tag }}"
+        postgresqlVolumeSize: "{{ ocp4_workload_ocpsandbox_gitea_instance_postgresql_volume_size }}"
+        giteaSsl: true
+        giteaAdminUser: "{{ ocp4_workload_ocpsandbox_gitea_instance_admin_user }}"
+        giteaAdminPassword: "{{ ocp4_workload_ocpsandbox_gitea_instance_admin_password }}"
+        giteaAdminEmail: "admin@demo.redhat.com"
+        giteaDisableRegistration: true
+        giteaEnableCaptcha: false
+        giteaAllowCreateOrganization: true
+        giteaRegisterEmailConfirm: false
+        giteaEnableNotifyMail: false
+
+# ------------------------------------------------------------------
+# Wait for Gitea to become ready
+# ------------------------------------------------------------------
+- name: Wait for Gitea route to be available
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_token }}"
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}"
+    label_selectors:
+    - app=gitea
+  register: r_gitea_route
+  retries: 60
+  delay: 10
+  until: r_gitea_route.resources | length > 0
+
+- name: Set Gitea URL facts for downstream roles
+  ansible.builtin.set_fact:
+    gitea_url: "https://{{ r_gitea_route.resources[0].spec.host }}"
+    gitea_internal_url: >-
+      http://gitea.{{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}.svc.cluster.local:3000
+
+- name: Wait for Gitea admin API to be ready
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/admin/users"
+    method: GET
+    user: "{{ ocp4_workload_ocpsandbox_gitea_instance_admin_user }}"
+    password: "{{ ocp4_workload_ocpsandbox_gitea_instance_admin_password }}"
+    force_basic_auth: true
+    validate_certs: true
+    status_code: [200]
+  register: r_gitea_ready
+  retries: 30
+  delay: 10
+  until: r_gitea_ready.status | default(0) == 200
+
+# ------------------------------------------------------------------
+# Export information for downstream roles and showroom
+# ------------------------------------------------------------------
+- name: Save Gitea instance information
+  agnosticd.core.agnosticd_user_info:
+    data:
+      gitea_url: "{{ gitea_url }}"
