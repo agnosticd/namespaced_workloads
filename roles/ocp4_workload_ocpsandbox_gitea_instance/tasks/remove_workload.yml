@@ -1,11 +1,17 @@
 ---
 # Gitea instance cleanup.
-# The Gitea CR and all resources (Deployment, Service, Route, PVCs)
-# live inside the namespace which is deleted by sandbox API.
-# No explicit cleanup needed here.
+# Delete the namespace (and everything in it) since it was created
+# by this role as fallback when sandbox API didn't create it.
+# If sandbox API created the namespace, it will also try to delete it
+# which is fine -- one of the two deletions will be a no-op.
 
-- name: Gitea instance cleanup handled by sandbox API
-  ansible.builtin.debug:
-    msg: >-
-      Gitea instance in namespace {{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}
-      will be cleaned up when sandbox API deletes the namespace.
+- name: Delete Gitea namespace
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Namespace
+    name: "{{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}"
+    state: absent
+  ignore_errors: true
