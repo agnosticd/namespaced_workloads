@@ -1,5 +1,20 @@
 ---
 # ==================================================================
+# Ensure namespace exists (fallback if sandbox API didn't create it)
+# ==================================================================
+- name: Ensure Gitea namespace exists
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}"
+
+# ==================================================================
 # Deploy per-user Gitea instance via Gitea operator CR
 # ==================================================================
 - name: Deploy Gitea instance CR
