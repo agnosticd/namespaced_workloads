@@ -1,5 +1,32 @@
 ---
 # ==================================================================
+# Discover the gitea namespace created by the sandbox API.
+# The sandbox API labels all namespaces with 'guid' and
+# 'created-by=sandbox-api'. The gitea namespace name ends with '-gitea'.
+# This avoids relying on the 'var' key in common.yaml (not yet
+# implemented in sandbox API / AgnosticD).
+# ==================================================================
+- name: Find sandbox-created gitea namespace
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Namespace
+    label_selectors:
+    - "created-by=sandbox-api"
+    - "guid={{ guid }}"
+  register: r_sandbox_namespaces
+
+- name: Set gitea namespace from discovered sandbox namespace
+  ansible.builtin.set_fact:
+    ocp4_workload_ocpsandbox_gitea_instance_namespace: >-
+      {{ r_sandbox_namespaces.resources
+         | map(attribute='metadata.name')
+         | select('match', '.*-gitea$')
+         | list | first }}
+
+# ==================================================================
 # Deploy per-user Gitea instance via Gitea operator CR
 # Namespace is created by the sandbox API (cluster_condition: same(cluster))
 # ==================================================================
