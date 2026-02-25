@@ -15,7 +15,7 @@
     kind: Namespace
     label_selectors:
     - "created-by=sandbox-api"
-    - "guid={{ guid }}"
+    - "guid={{ sandbox_openshift_namespace | regex_replace('^sandbox-([^-]+)-.*', '\\1') }}"
   register: r_sandbox_namespaces
 
 - name: Set gitea namespace from discovered sandbox namespace
@@ -23,7 +23,12 @@
     ocp4_workload_ocpsandbox_gitea_instance_namespace: >-
       {{ r_sandbox_namespaces.resources
          | map(attribute='metadata.name')
-         | select('match', '.*-gitea$')
+         | select('match', '.*-[0-9]+-gitea$')
+         | list | first }}
+    ocp4_workload_ocpsandbox_gitea_user_namespace: >-
+      {{ r_sandbox_namespaces.resources
+         | map(attribute='metadata.name')
+         | select('match', '.*-[0-9]+-gitea$')
          | list | first }}
 
 # ==================================================================
