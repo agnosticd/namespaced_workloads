@@ -1,17 +1,4 @@
 ---
 # Gitea instance cleanup.
-# Delete the namespace (and everything in it) since it was created
-# by this role as fallback when sandbox API didn't create it.
-# If sandbox API created the namespace, it will also try to delete it
-# which is fine -- one of the two deletions will be a no-op.
-
-- name: Delete Gitea namespace
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_ocpsandbox_gitea_instance_openshift_api_token }}"
-    validate_certs: false
-    api_version: v1
-    kind: Namespace
-    name: "{{ ocp4_workload_ocpsandbox_gitea_instance_namespace }}"
-    state: absent
-  ignore_errors: true
+# Namespace is managed by the sandbox API (created and deleted automatically).
+# No explicit namespace deletion needed here.
