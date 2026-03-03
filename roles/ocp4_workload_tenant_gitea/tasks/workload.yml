@@ -156,6 +156,14 @@
     label: "{{ repo_item.name }}"
 
 # ------------------------------------------------------------------
+# Export repo URL for gitops_bootstrap (runs after this role)
+# ------------------------------------------------------------------
+- name: Set gitops_bootstrap repo URL for downstream roles
+  ansible.builtin.set_fact:
+    ocp4_workload_gitops_bootstrap_repo_url: >-
+      {{ _ocp4_workload_tenant_gitea_url }}/{{ ocp4_workload_tenant_gitea_username }}/mcp.git
+
+# ------------------------------------------------------------------
 # Save user info
 # ------------------------------------------------------------------
 - name: Save Gitea information
