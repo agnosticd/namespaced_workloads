@@ -21,6 +21,47 @@
   loop_control:
     loop_var: ns_item
 
+- name: Apply ResourceQuota to namespace
+  when: ocp4_workload_tenant_namespace_quota | length > 0
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ResourceQuota
+      metadata:
+        name: tenant-quota
+        namespace: "{{ ns_item }}"
+      spec:
+        hard: "{{ ocp4_workload_tenant_namespace_quota }}"
+  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+  loop_control:
+    loop_var: ns_item
+
+- name: Apply LimitRange to namespace
+  when: ocp4_workload_tenant_namespace_limit_range | length > 0
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: v1
+      kind: LimitRange
+      metadata:
+        name: tenant-limit-range
+        namespace: "{{ ns_item }}"
+      spec:
+        limits:
+        - type: Container
+          default: "{{ ocp4_workload_tenant_namespace_limit_range.default | default({}) }}"
+          defaultRequest: "{{ ocp4_workload_tenant_namespace_limit_range.defaultRequest | default({}) }}"
+  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+  loop_control:
+    loop_var: ns_item
+
 - name: Grant user access in each namespace
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"

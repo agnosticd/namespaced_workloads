@@ -14,3 +14,22 @@ ocp4_workload_tenant_namespace_role: admin
 # - my-app
 # - my-db
 ocp4_workload_tenant_namespace_namespaces: []
+
+# ResourceQuota applied to each namespace (optional)
+# ocp4_workload_tenant_namespace_quota:
+#   limits.cpu: "2"
+#   requests.cpu: "2"
+#   limits.memory: 4Gi
+#   requests.memory: 4Gi
+#   requests.storage: 20Gi
+ocp4_workload_tenant_namespace_quota: {}
+
+# LimitRange container defaults applied to each namespace (optional)
+# ocp4_workload_tenant_namespace_limit_range:
+#   default:
+#     cpu: 500m
+#     memory: 512Mi
+#   defaultRequest:
+#     cpu: 50m
+#     memory: 128Mi
+ocp4_workload_tenant_namespace_limit_range: {}
