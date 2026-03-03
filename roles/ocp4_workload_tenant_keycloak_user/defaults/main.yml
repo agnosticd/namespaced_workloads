@@ -9,5 +9,5 @@ ocp4_workload_tenant_keycloak_user_password: ""
 
 # Keycloak configuration
 ocp4_workload_tenant_keycloak_user_keycloak_namespace: keycloak
-ocp4_workload_tenant_keycloak_user_keycloak_realm: openshift
+ocp4_workload_tenant_keycloak_user_keycloak_realm: sso
 ocp4_workload_tenant_keycloak_user_keycloak_admin_secret: keycloak-initial-admin
