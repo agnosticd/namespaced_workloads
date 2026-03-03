@@ -1,0 +1,18 @@
+---
+# ==================================================================
+# Delete all tenant namespaces created by this role.
+# ==================================================================
+
+- name: Delete tenant namespaces
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ ns_item }}"
+  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+  loop_control:
+    loop_var: ns_item
+  ignore_errors: true

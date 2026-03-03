@@ -1,0 +1,13 @@
+---
+# Cluster connection (from sandbox)
+ocp4_workload_tenant_keycloak_user_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_keycloak_user_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# User to create -- defaults to userX-GUID format
+ocp4_workload_tenant_keycloak_user_username: "user1-{{ guid }}"
+ocp4_workload_tenant_keycloak_user_password: ""
+
+# Keycloak configuration
+ocp4_workload_tenant_keycloak_user_keycloak_namespace: keycloak
+ocp4_workload_tenant_keycloak_user_keycloak_realm: openshift
+ocp4_workload_tenant_keycloak_user_keycloak_admin_secret: keycloak-initial-admin

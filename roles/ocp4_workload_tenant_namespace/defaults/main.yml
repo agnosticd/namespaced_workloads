@@ -1,0 +1,16 @@
+---
+# Cluster connection
+ocp4_workload_tenant_namespace_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# User to grant access in each namespace
+ocp4_workload_tenant_namespace_username: "user1-{{ guid }}"
+
+# Role to bind for the user in each namespace
+ocp4_workload_tenant_namespace_role: admin
+
+# List of namespaces to create
+# ocp4_workload_tenant_namespace_namespaces:
+# - my-app
+# - my-db
+ocp4_workload_tenant_namespace_namespaces: []
