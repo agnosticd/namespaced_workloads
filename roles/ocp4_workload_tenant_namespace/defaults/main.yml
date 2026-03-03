@@ -10,7 +10,7 @@ ocp4_workload_tenant_keycloak_username: "user-{{ guid }}"
 ocp4_workload_tenant_namespace_role: admin
 
 # Prefix prepended to each suffix: {suffix}-{prefix}
-# Defaults to ocp4_workload_tenant_username which defaults to user-{guid}
+# Defaults to ocp4_workload_tenant_keycloak_username which defaults to user-{guid}
 ocp4_workload_tenant_namespace_prefix: "{{ ocp4_workload_tenant_keycloak_username }}"
 
 # List of namespace suffixes -- role creates {suffix}-{prefix} for each
