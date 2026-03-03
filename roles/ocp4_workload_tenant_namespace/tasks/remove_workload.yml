@@ -6,6 +6,68 @@
          | map('regex_replace', '^(.+)$', '\1-' + ocp4_workload_tenant_namespace_prefix)
          | list }}
 
+# ==================================================================
+# Clean up ArgoCD Applications before deleting namespaces.
+# ArgoCD Applications have resources-finalizer which prunes K8s
+# resources from the namespace on deletion. This must happen before
+# namespaces are deleted to avoid conflicts.
+# ==================================================================
+
+- name: Find per-user ArgoCD Applications in tenants project
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    namespace: openshift-gitops
+  register: r_argocd_apps
+  ignore_errors: true
+
+- name: Delete per-user ArgoCD Applications
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: "{{ app_item.metadata.name }}"
+    namespace: openshift-gitops
+  loop: >-
+    {{ r_argocd_apps.resources
+       | default([])
+       | selectattr('spec.project', 'in', ['tenants', 'default'])
+       | selectattr('metadata.name', 'search', ocp4_workload_tenant_keycloak_username)
+       | list }}
+  loop_control:
+    loop_var: app_item
+    label: "{{ app_item.metadata.name }}"
+  ignore_errors: true
+
+- name: Wait for ArgoCD Applications to be fully removed
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    namespace: openshift-gitops
+  register: r_remaining_apps
+  retries: 30
+  delay: 10
+  until: >-
+    r_remaining_apps.resources
+    | default([])
+    | selectattr('metadata.name', 'search', ocp4_workload_tenant_keycloak_username)
+    | list
+    | length == 0
+  ignore_errors: true
+
+# ==================================================================
+# Delete tenant namespaces (now safe -- ArgoCD already cleaned up)
+# ==================================================================
+
 - name: Delete tenant namespaces
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
