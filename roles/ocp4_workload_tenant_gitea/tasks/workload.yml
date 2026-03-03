@@ -1,0 +1,146 @@
+---
+# ==================================================================
+# Deploy a per-user Gitea instance and create a tenant user on it.
+# The instance and the user are always created together — there is
+# no use case for one without the other.
+# ==================================================================
+
+# ------------------------------------------------------------------
+# Deploy Gitea instance via Gitea operator CR
+# ------------------------------------------------------------------
+- name: Deploy Gitea instance CR
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: pfe.rhpds.com/v1
+      kind: Gitea
+      metadata:
+        name: gitea
+        namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
+      spec:
+        giteaImage: "{{ ocp4_workload_tenant_gitea_image }}"
+        giteaImageTag: "{{ ocp4_workload_tenant_gitea_image_tag }}"
+        giteaVolumeSize: "{{ ocp4_workload_tenant_gitea_volume_size }}"
+        postgresqlImage: "{{ ocp4_workload_tenant_gitea_postgresql_image }}"
+        postgresqlImageTag: "{{ ocp4_workload_tenant_gitea_postgresql_image_tag }}"
+        postgresqlVolumeSize: "{{ ocp4_workload_tenant_gitea_postgresql_volume_size }}"
+        giteaSsl: true
+        giteaAdminUser: "{{ ocp4_workload_tenant_gitea_admin_user }}"
+        giteaAdminPassword: "{{ ocp4_workload_tenant_gitea_admin_password }}"
+        giteaAdminEmail: "admin@demo.redhat.com"
+        giteaDisableRegistration: true
+        giteaEnableCaptcha: false
+        giteaAllowCreateOrganization: true
+        giteaRegisterEmailConfirm: false
+        giteaEnableNotifyMail: false
+
+# ------------------------------------------------------------------
+# Wait for Gitea to be ready
+# ------------------------------------------------------------------
+- name: Wait for Gitea route
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
+    label_selectors:
+    - app=gitea
+  register: r_gitea_route
+  retries: 60
+  delay: 10
+  until: r_gitea_route.resources | length > 0
+
+- name: Set Gitea URL
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitea_url: "https://{{ r_gitea_route.resources[0].spec.host }}"
+
+- name: Wait for Gitea admin API
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/admin/users"
+    method: GET
+    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
+    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
+    force_basic_auth: true
+    validate_certs: true
+    status_code: [200]
+  retries: 30
+  delay: 10
+  register: r_gitea_ready
+  until: r_gitea_ready.status | default(0) == 200
+
+# ------------------------------------------------------------------
+# Create tenant user
+# ------------------------------------------------------------------
+- name: Create Gitea user
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/admin/users"
+    method: POST
+    validate_certs: false
+    body_format: json
+    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
+    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
+    force_basic_auth: true
+    body:
+      username: "{{ ocp4_workload_tenant_gitea_username }}"
+      password: "{{ ocp4_workload_tenant_gitea_password }}"
+      email: "{{ ocp4_workload_tenant_gitea_username }}@demo.redhat.com"
+      must_change_password: false
+    status_code: [201, 422]
+  register: r_gitea_create_user
+
+- name: Update existing user password
+  when: r_gitea_create_user.status == 422
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/admin/users/{{ ocp4_workload_tenant_gitea_username }}"
+    method: PATCH
+    validate_certs: false
+    body_format: json
+    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
+    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
+    force_basic_auth: true
+    body:
+      login_name: "{{ ocp4_workload_tenant_gitea_username }}"
+      source_id: 0
+      password: "{{ ocp4_workload_tenant_gitea_password }}"
+      must_change_password: false
+    status_code: 200
+
+# ------------------------------------------------------------------
+# Migrate repositories
+# ------------------------------------------------------------------
+- name: Migrate repositories for user
+  when: ocp4_workload_tenant_gitea_repositories | length > 0
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/repos/migrate"
+    method: POST
+    validate_certs: false
+    body_format: json
+    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
+    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
+    force_basic_auth: true
+    body:
+      clone_addr: "{{ repo_item.repo }}"
+      repo_name: "{{ repo_item.name }}"
+      repo_owner: "{{ ocp4_workload_tenant_gitea_username }}"
+      mirror: false
+      private: "{{ repo_item.private | default(false) }}"
+    status_code: [201, 409]
+  loop: "{{ ocp4_workload_tenant_gitea_repositories }}"
+  loop_control:
+    loop_var: repo_item
+    label: "{{ repo_item.name }}"
+
+# ------------------------------------------------------------------
+# Save user info
+# ------------------------------------------------------------------
+- name: Save Gitea information
+  agnosticd.core.agnosticd_user_info:
+    data:
+      gitea_url: "{{ _ocp4_workload_tenant_gitea_url }}"
+      gitea_user: "{{ ocp4_workload_tenant_gitea_username }}"
+      gitea_password: "{{ ocp4_workload_tenant_gitea_password }}"
