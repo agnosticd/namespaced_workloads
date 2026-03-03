@@ -4,14 +4,14 @@ ocp4_workload_tenant_namespace_openshift_api_url: "{{ sandbox_openshift_api_url 
 ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
 # User to grant access in each namespace
-ocp4_workload_tenant_username: "user-{{ guid }}"
+ocp4_workload_tenant_keycloak_username: "user-{{ guid }}"
 
 # Role to bind for the user in each namespace
 ocp4_workload_tenant_namespace_role: admin
 
 # Prefix prepended to each suffix: {suffix}-{prefix}
 # Defaults to ocp4_workload_tenant_username which defaults to user-{guid}
-ocp4_workload_tenant_namespace_prefix: "{{ ocp4_workload_tenant_username | default('user-' + guid) }}"
+ocp4_workload_tenant_namespace_prefix: "{{ ocp4_workload_tenant_keycloak_username }}"
 
 # List of namespace suffixes -- role creates {suffix}-{prefix} for each
 # ocp4_workload_tenant_namespace_suffixes:

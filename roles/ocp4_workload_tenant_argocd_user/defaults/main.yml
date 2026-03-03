@@ -4,7 +4,7 @@ ocp4_workload_tenant_argocd_user_openshift_api_url: "{{ sandbox_openshift_api_ur
 ocp4_workload_tenant_argocd_user_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
 # User to create AppProject for -- defaults to userX-GUID format
-ocp4_workload_tenant_argocd_user_username: "{{ ocp4_workload_tenant_username | default('user-' + guid) }}"
+ocp4_workload_tenant_argocd_user_username: "{{ ocp4_workload_tenant_keycloak_username }}"
 
 # ArgoCD configuration
 ocp4_workload_tenant_argocd_user_namespace: openshift-gitops
