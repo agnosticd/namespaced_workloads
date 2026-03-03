@@ -8,7 +8,7 @@
 - name: Save user information
   agnosticd.core.agnosticd_user_info:
     data:
-      user: "{{ ocp4_workload_tenant_keycloak_user_username }}"
+      user: "{{ ocp4_workload_tenant_keycloak_username }}"
       password: "{{ ocp4_workload_tenant_keycloak_user_password }}"
       openshift_api_url: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
       openshift_console_url: "{{ _ocp4_workload_tenant_keycloak_user_console_url }}"

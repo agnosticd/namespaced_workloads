@@ -1,7 +1,10 @@
 ---
-# ==================================================================
-# Delete all tenant namespaces created by this role.
-# ==================================================================
+- name: Build namespace list
+  ansible.builtin.set_fact:
+    _tenant_namespaces: >-
+      {{ ocp4_workload_tenant_namespace_suffixes
+         | map('regex_replace', '^(.+)$', '\1-' + ocp4_workload_tenant_namespace_prefix)
+         | list }}
 
 - name: Delete tenant namespaces
   kubernetes.core.k8s:
@@ -12,7 +15,7 @@
     api_version: v1
     kind: Namespace
     name: "{{ ns_item }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
     loop_var: ns_item
   ignore_errors: true

@@ -1,4 +1,30 @@
 ---
+# ==================================================================
+# Discover all tenant namespaces via label, then create ArgoCD
+# AppProject with those namespaces as destinations.
+# Tenant namespaces are labeled: tenant={{ username }}
+# (set by ocp4_workload_tenant_namespace role).
+# ==================================================================
+
+- name: Find tenant namespaces by label
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_argocd_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_argocd_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Namespace
+    label_selectors:
+    - "tenant={{ ocp4_workload_tenant_argocd_user_username }}"
+    - "created-by=agnosticd"
+  register: r_tenant_namespaces
+
+- name: Build destination list from discovered namespaces
+  ansible.builtin.set_fact:
+    _argocd_extra_destinations: >-
+      {{ ([sandbox_openshift_namespace] +
+          r_tenant_namespaces.resources | map(attribute='metadata.name') | list)
+         | unique }}
+
 - name: Create ArgoCD AppProject for user
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_argocd_user_openshift_api_url }}"

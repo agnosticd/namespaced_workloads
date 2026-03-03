@@ -41,18 +41,18 @@
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
     body:
-      username: "{{ ocp4_workload_tenant_keycloak_user_username }}"
+      username: "{{ ocp4_workload_tenant_keycloak_username }}"
       enabled: true
-      firstName: "{{ ocp4_workload_tenant_keycloak_user_username }}"
+      firstName: "{{ ocp4_workload_tenant_keycloak_username }}"
       lastName: Demo
-      email: "{{ ocp4_workload_tenant_keycloak_user_username }}@demo.redhat.com"
+      email: "{{ ocp4_workload_tenant_keycloak_username }}@demo.redhat.com"
       emailVerified: true
     status_code: [201, 409]
   register: r_keycloak_create_user
 
 - name: Get user ID from Keycloak
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_user_username }}"
+    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_username }}"
     method: GET
     validate_certs: false
     headers:

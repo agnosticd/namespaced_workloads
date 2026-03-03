@@ -1,10 +1,15 @@
 ---
 # ==================================================================
-# Create tenant namespaces and grant user access.
-# Namespaces are listed in ocp4_workload_tenant_namespace_namespaces.
-# This role owns the namespace lifecycle -- remove_workload.yml
-# deletes them on destroy.
+# Build namespace list from suffixes + prefix, then create each.
+# Pattern: {suffix}-{prefix}  e.g. librechat-sandbox-guid
 # ==================================================================
+
+- name: Build namespace list
+  ansible.builtin.set_fact:
+    _tenant_namespaces: >-
+      {{ ocp4_workload_tenant_namespace_suffixes
+         | map('regex_replace', '^(.+)$', '\1-' + ocp4_workload_tenant_namespace_prefix)
+         | list }}
 
 - name: Create tenant namespaces
   kubernetes.core.k8s:
@@ -17,7 +22,10 @@
       kind: Namespace
       metadata:
         name: "{{ ns_item }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+        labels:
+          created-by: agnosticd
+          tenant: "{{ ocp4_workload_tenant_namespace_prefix }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
     loop_var: ns_item
 
@@ -36,7 +44,7 @@
         namespace: "{{ ns_item }}"
       spec:
         hard: "{{ ocp4_workload_tenant_namespace_quota }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
     loop_var: ns_item
 
@@ -58,7 +66,7 @@
         - type: Container
           default: "{{ ocp4_workload_tenant_namespace_limit_range.default | default({}) }}"
           defaultRequest: "{{ ocp4_workload_tenant_namespace_limit_range.defaultRequest | default({}) }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
     loop_var: ns_item
 
@@ -72,7 +80,7 @@
       apiVersion: rbac.authorization.k8s.io/v1
       kind: RoleBinding
       metadata:
-        name: "{{ ocp4_workload_tenant_namespace_role }}-{{ ocp4_workload_tenant_namespace_username }}"
+        name: "{{ ocp4_workload_tenant_namespace_role }}-{{ ocp4_workload_tenant_username }}"
         namespace: "{{ ns_item }}"
       roleRef:
         apiGroup: rbac.authorization.k8s.io
@@ -81,7 +89,7 @@
       subjects:
       - apiGroup: rbac.authorization.k8s.io
         kind: User
-        name: "{{ ocp4_workload_tenant_namespace_username }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+        name: "{{ ocp4_workload_tenant_username }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
     loop_var: ns_item

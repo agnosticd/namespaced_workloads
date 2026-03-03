@@ -38,7 +38,7 @@ remove_workloads:
 - agnosticd.namespaced_workloads.ocp4_workload_tenant_keycloak_user
 
 # Variables
-ocp4_workload_tenant_keycloak_user_username: "user-{{ guid }}"
+ocp4_workload_tenant_keycloak_username: "user-{{ guid }}"
 ocp4_workload_tenant_keycloak_user_password: "{{ common_password }}"
 ocp4_workload_tenant_keycloak_user_keycloak_realm: sso
 ```

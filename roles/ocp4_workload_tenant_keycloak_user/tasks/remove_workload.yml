@@ -42,7 +42,7 @@
 
 - name: Get user ID from Keycloak
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_user_username }}&exact=true"
+    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_username }}&exact=true"
     method: GET
     validate_certs: false
     headers:
@@ -82,7 +82,7 @@
     state: absent
     api_version: user.openshift.io/v1
     kind: User
-    name: "{{ ocp4_workload_tenant_keycloak_user_username }}"
+    name: "{{ ocp4_workload_tenant_keycloak_username }}"
   ignore_errors: true
 
 # -----------------------------------------------
@@ -108,7 +108,7 @@
     name: "{{ ns_item.metadata.name }}"
   loop: >-
     {{ r_all_namespaces.resources
-       | selectattr('metadata.name', 'match', '.*-' ~ ocp4_workload_tenant_keycloak_user_username ~ '$')
+       | selectattr('metadata.name', 'match', '.*-' ~ ocp4_workload_tenant_keycloak_username ~ '$')
        | list }}
   loop_control:
     loop_var: ns_item
@@ -139,7 +139,7 @@
   loop: >-
     {{ r_crbs.resources
        | selectattr('subjects', 'defined')
-       | selectattr('metadata.name', 'search', ocp4_workload_tenant_keycloak_user_username)
+       | selectattr('metadata.name', 'search', ocp4_workload_tenant_keycloak_username)
        | list }}
   loop_control:
     loop_var: crb_item
