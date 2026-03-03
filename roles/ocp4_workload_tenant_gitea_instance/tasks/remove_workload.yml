@@ -1,0 +1,4 @@
+---
+# Gitea instance cleanup.
+# Namespace is managed by the sandbox API (created and deleted automatically).
+# No explicit namespace deletion needed here.

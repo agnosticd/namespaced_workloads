@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ocp4_workload_tenant_gitea_instance
+  author: Red Hat, Prakhar Srivastava
+  description: |
+    Deploys a per-user Gitea instance via the Gitea operator CR.
+    Waits for readiness and exports gitea_url fact for downstream roles.
+    Designed for namespace config with sandbox API pattern.
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms: []
+  galaxy_tags:
+  - ocp
+  - openshift
+  - gitea
+dependencies: []

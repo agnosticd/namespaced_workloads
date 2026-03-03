@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ocp4_workload_tenant_gitea_user
+  author: Red Hat, Prakhar Srivastava
+  description: |
+    Dynamic Gitea user provisioning on shared OCP clusters.
+    Creates Gitea user via REST API and migrates repositories.
+    Designed for namespace config with sandbox API pattern.
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms: []
+  galaxy_tags:
+  - ocp
+  - openshift
+  - gitea
+dependencies: []

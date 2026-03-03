@@ -38,7 +38,7 @@ remove_workloads:
 - agnosticd.namespaced_workloads.ocp4_workload_tenant_keycloak_user
 
 # Variables
-ocp4_workload_tenant_keycloak_user_username: "user1-{{ guid }}"
+ocp4_workload_tenant_keycloak_user_username: "user-{{ guid }}"
 ocp4_workload_tenant_keycloak_user_password: "{{ common_password }}"
 ocp4_workload_tenant_keycloak_user_keycloak_realm: sso
 ```
@@ -51,7 +51,7 @@ The role uses `ACTION` variable (set automatically by AgnosticD): `provision` ru
 |----------|---------|-------------|
 | `_openshift_api_url` | `{{ sandbox_openshift_api_url }}` | Cluster API URL (from sandbox) |
 | `_openshift_api_token` | `{{ cluster_admin_agnosticd_sa_token }}` | SA token (from sandbox) |
-| `_username` | `user1-{{ guid }}` | Username to create |
+| `_username` | `user-{{ guid }}` | Username to create |
 | `_password` | (required) | Password for the user |
 | `_keycloak_namespace` | `keycloak` | Namespace where RHBK is deployed |
 | `_keycloak_realm` | `openshift` | Keycloak realm for user creation |
