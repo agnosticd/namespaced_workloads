@@ -36,9 +36,16 @@
         giteaAllowCreateOrganization: true
         giteaRegisterEmailConfirm: false
         giteaEnableNotifyMail: false
+        giteaCreateUsers: true
+        giteaUserNumber: 1
+        giteaGenerateUserFormat: "{{ ocp4_workload_tenant_gitea_username }}"
+        giteaUserPassword: "{{ ocp4_workload_tenant_gitea_password }}"
+        giteaUserEmailDomain: "demo.redhat.com"
+        giteaMigrateRepositories: "{{ ocp4_workload_tenant_gitea_repositories | length > 0 }}"
+        giteaRepositoriesList: "{{ ocp4_workload_tenant_gitea_repositories }}"
 
 # ------------------------------------------------------------------
-# Wait for Gitea to be ready
+# Wait for Gitea route (needed to export URL for gitops_bootstrap)
 # ------------------------------------------------------------------
 - name: Wait for Gitea route
   kubernetes.core.k8s_info:
@@ -60,10 +67,9 @@
     _ocp4_workload_tenant_gitea_url: "https://{{ r_gitea_route.resources[0].spec.host }}"
 
 # ------------------------------------------------------------------
-# Discover actual admin password from Gitea CR (operator may
-# override the password set in the CR spec with its own generated one)
+# Wait for operator to complete user setup and repo migration
 # ------------------------------------------------------------------
-- name: Get Gitea CR to discover actual admin password
+- name: Wait for Gitea user setup and repo migration to complete
   kubernetes.core.k8s_info:
     host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
@@ -73,87 +79,11 @@
     name: gitea
     namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
   register: r_gitea_cr
-
-- name: Set admin password from CR
-  ansible.builtin.set_fact:
-    ocp4_workload_tenant_gitea_admin_password: >-
-      {{ r_gitea_cr.resources[0].spec.giteaAdminPassword }}
-
-- name: Wait for Gitea admin API
-  ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/admin/users"
-    method: GET
-    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
-    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
-    force_basic_auth: true
-    validate_certs: true
-    status_code: [200]
-  retries: 30
+  retries: 60
   delay: 10
-  register: r_gitea_ready
-  until: r_gitea_ready.status | default(0) == 200
-
-# ------------------------------------------------------------------
-# Create tenant user
-# ------------------------------------------------------------------
-- name: Create Gitea user
-  ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/admin/users"
-    method: POST
-    validate_certs: false
-    body_format: json
-    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
-    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
-    force_basic_auth: true
-    body:
-      username: "{{ ocp4_workload_tenant_gitea_username }}"
-      password: "{{ ocp4_workload_tenant_gitea_password }}"
-      email: "{{ ocp4_workload_tenant_gitea_username }}@demo.redhat.com"
-      must_change_password: false
-    status_code: [201, 422]
-  register: r_gitea_create_user
-
-- name: Update existing user password
-  when: r_gitea_create_user.status == 422
-  ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/admin/users/{{ ocp4_workload_tenant_gitea_username }}"
-    method: PATCH
-    validate_certs: false
-    body_format: json
-    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
-    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
-    force_basic_auth: true
-    body:
-      login_name: "{{ ocp4_workload_tenant_gitea_username }}"
-      source_id: 0
-      password: "{{ ocp4_workload_tenant_gitea_password }}"
-      must_change_password: false
-    status_code: 200
-
-# ------------------------------------------------------------------
-# Migrate repositories
-# ------------------------------------------------------------------
-- name: Migrate repositories for user
-  when: ocp4_workload_tenant_gitea_repositories | length > 0
-  ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitea_url }}/api/v1/repos/migrate"
-    method: POST
-    validate_certs: false
-    body_format: json
-    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
-    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
-    force_basic_auth: true
-    body:
-      clone_addr: "{{ repo_item.repo }}"
-      repo_name: "{{ repo_item.name }}"
-      repo_owner: "{{ ocp4_workload_tenant_gitea_username }}"
-      mirror: false
-      private: "{{ repo_item.private | default(false) }}"
-    status_code: [201, 409]
-  loop: "{{ ocp4_workload_tenant_gitea_repositories }}"
-  loop_control:
-    loop_var: repo_item
-    label: "{{ repo_item.name }}"
+  until:
+  - r_gitea_cr.resources[0].status.userSetupComplete is defined
+  - r_gitea_cr.resources[0].status.userSetupComplete | bool
 
 # ------------------------------------------------------------------
 # Export repo URL for gitops_bootstrap (runs after this role)
