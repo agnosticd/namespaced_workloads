@@ -5,17 +5,6 @@
 # (sandbox API or ocp4_workload_tenant_namespace).
 # ==================================================================
 
-- name: Delete Gitea user
-  ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitea_url | default('') }}/api/v1/admin/users/{{ ocp4_workload_tenant_gitea_username }}"
-    method: DELETE
-    validate_certs: false
-    user: "{{ ocp4_workload_tenant_gitea_admin_user }}"
-    password: "{{ ocp4_workload_tenant_gitea_admin_password }}"
-    force_basic_auth: true
-    status_code: [204, 404, 422]
-  ignore_errors: true
-
 - name: Delete Gitea CR
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
