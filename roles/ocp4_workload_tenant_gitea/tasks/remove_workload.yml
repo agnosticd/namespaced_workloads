@@ -1,0 +1,18 @@
+---
+# ==================================================================
+# Gitea cleanup.
+# Namespace deletion is handled by whoever created it
+# (sandbox API or ocp4_workload_tenant_namespace).
+# ==================================================================
+
+- name: Delete Gitea CR
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: pfe.rhpds.com/v1
+    kind: Gitea
+    name: gitea
+    namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
+  ignore_errors: true

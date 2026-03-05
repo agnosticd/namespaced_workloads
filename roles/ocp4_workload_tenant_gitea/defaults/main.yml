@@ -1,0 +1,32 @@
+---
+# Cluster connection
+ocp4_workload_tenant_gitea_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_gitea_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# Namespace where the per-user Gitea instance is deployed
+ocp4_workload_tenant_gitea_namespace: gitea
+
+# Gitea container image
+ocp4_workload_tenant_gitea_image: quay.io/rhpds/gitea
+ocp4_workload_tenant_gitea_image_tag: "1.25.4"
+ocp4_workload_tenant_gitea_volume_size: 2Gi
+
+# PostgreSQL backend
+ocp4_workload_tenant_gitea_postgresql_image: registry.redhat.io/rhel10/postgresql-16
+ocp4_workload_tenant_gitea_postgresql_image_tag: latest
+ocp4_workload_tenant_gitea_postgresql_volume_size: 2Gi
+
+# Gitea admin credentials (written into the Gitea CR)
+ocp4_workload_tenant_gitea_admin_user: gitea-admin
+ocp4_workload_tenant_gitea_admin_password: ""
+
+# Tenant user to create on Gitea
+ocp4_workload_tenant_gitea_username: "{{ ocp4_workload_tenant_keycloak_username }}"
+ocp4_workload_tenant_gitea_password: ""
+
+# Repositories to migrate for the user
+ocp4_workload_tenant_gitea_repositories: []
+# Example:
+# - name: my-repo
+#   repo: https://github.com/org/my-repo
+#   private: false

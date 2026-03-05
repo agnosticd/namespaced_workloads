@@ -1,0 +1,26 @@
+---
+- name: Build namespace list
+  ansible.builtin.set_fact:
+    _tenant_namespaces: >-
+      {{ ocp4_workload_tenant_namespace_suffixes
+         | map('regex_replace', '^(.+)$', '\1-' + ocp4_workload_tenant_namespace_prefix)
+         | list }}
+
+# ArgoCD cleanup is handled by ocp4_workload_gitops_bootstrap remove_workload.
+# The bootstrap Application has resources-finalizer.argocd.argoproj.io so
+# deleting it cascades to child Applications and their K8s resources.
+# By the time this role runs, ArgoCD has already cleaned up.
+
+- name: Delete tenant namespaces
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: v1
+    kind: Namespace
+    name: "{{ ns_item }}"
+  loop: "{{ _tenant_namespaces }}"
+  loop_control:
+    loop_var: ns_item
+  ignore_errors: true

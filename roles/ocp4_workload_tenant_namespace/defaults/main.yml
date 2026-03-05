@@ -1,0 +1,49 @@
+---
+# Cluster connection
+ocp4_workload_tenant_namespace_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# User to grant access in each namespace
+ocp4_workload_tenant_namespace_username: "user-{{ guid }}"
+
+# Role to bind for the user in each namespace
+ocp4_workload_tenant_namespace_role: admin
+
+# Prefix prepended to each suffix: {suffix}-{prefix}
+# Defaults to ocp4_workload_tenant_namespace_username which defaults to user-{guid}
+ocp4_workload_tenant_namespace_prefix: "{{ ocp4_workload_tenant_namespace_username }}"
+
+# STYLE A — per-namespace config (supports different quota per namespace):
+# ocp4_workload_tenant_namespace_namespaces:
+# - suffix: librechat
+#   quota: { limits.cpu: "4", limits.memory: 8Gi }
+#   limit_range: { default: { cpu: 500m, memory: 1Gi }, defaultRequest: { cpu: 50m, memory: 128Mi } }
+# - suffix: mcp-gitea
+#   quota: { limits.cpu: "1", limits.memory: 2Gi }
+# - suffix: agent  # no per-ns config, uses global quota/limit_range
+ocp4_workload_tenant_namespace_namespaces: []
+
+# STYLE B — simple suffix list, all namespaces get same quota (backward compatible):
+# ocp4_workload_tenant_namespace_suffixes:
+# - librechat
+# - mcp-gitea
+ocp4_workload_tenant_namespace_suffixes: []
+
+# ResourceQuota applied to each namespace (optional)
+# ocp4_workload_tenant_namespace_quota:
+#   limits.cpu: "2"
+#   requests.cpu: "2"
+#   limits.memory: 4Gi
+#   requests.memory: 4Gi
+#   requests.storage: 20Gi
+ocp4_workload_tenant_namespace_quota: {}
+
+# LimitRange container defaults applied to each namespace (optional)
+# ocp4_workload_tenant_namespace_limit_range:
+#   default:
+#     cpu: 500m
+#     memory: 512Mi
+#   defaultRequest:
+#     cpu: 50m
+#     memory: 128Mi
+ocp4_workload_tenant_namespace_limit_range: {}

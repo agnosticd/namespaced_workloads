@@ -1,0 +1,106 @@
+---
+# ==================================================================
+# Deploy a per-user Gitea instance and create a tenant user on it.
+# The instance and the user are always created together — there is
+# no use case for one without the other.
+# ==================================================================
+
+# ------------------------------------------------------------------
+# Deploy Gitea instance via Gitea operator CR
+# ------------------------------------------------------------------
+- name: Deploy Gitea instance CR
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: pfe.rhpds.com/v1
+      kind: Gitea
+      metadata:
+        name: gitea
+        namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
+      spec:
+        giteaImage: "{{ ocp4_workload_tenant_gitea_image }}"
+        giteaImageTag: "{{ ocp4_workload_tenant_gitea_image_tag }}"
+        giteaVolumeSize: "{{ ocp4_workload_tenant_gitea_volume_size }}"
+        postgresqlImage: "{{ ocp4_workload_tenant_gitea_postgresql_image }}"
+        postgresqlImageTag: "{{ ocp4_workload_tenant_gitea_postgresql_image_tag }}"
+        postgresqlVolumeSize: "{{ ocp4_workload_tenant_gitea_postgresql_volume_size }}"
+        giteaSsl: true
+        giteaAdminUser: "{{ ocp4_workload_tenant_gitea_admin_user }}"
+        giteaAdminPassword: "{{ ocp4_workload_tenant_gitea_admin_password }}"
+        giteaAdminEmail: "admin@demo.redhat.com"
+        giteaDisableRegistration: true
+        giteaEnableCaptcha: false
+        giteaAllowCreateOrganization: true
+        giteaRegisterEmailConfirm: false
+        giteaEnableNotifyMail: false
+        giteaCreateUsers: true
+        giteaUserNumber: 1
+        giteaGenerateUserFormat: "{{ ocp4_workload_tenant_gitea_username }}"
+        giteaUserPassword: "{{ ocp4_workload_tenant_gitea_password }}"
+        giteaUserEmailDomain: "demo.redhat.com"
+        giteaMigrateRepositories: "{{ (ocp4_workload_tenant_gitea_repositories | length > 0) | bool }}"
+        giteaRepositoriesList: "{{ ocp4_workload_tenant_gitea_repositories }}"
+
+# ------------------------------------------------------------------
+# Wait for Gitea route (needed to export URL for gitops_bootstrap)
+# ------------------------------------------------------------------
+- name: Wait for Gitea route
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
+    label_selectors:
+    - app=gitea
+  register: r_gitea_route
+  retries: 60
+  delay: 10
+  until: r_gitea_route.resources | length > 0
+
+- name: Set Gitea URL
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitea_url: "https://{{ r_gitea_route.resources[0].spec.host }}"
+
+# ------------------------------------------------------------------
+# Wait for operator to complete user setup and repo migration
+# ------------------------------------------------------------------
+- name: Wait for Gitea user setup and repo migration to complete
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitea_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_openshift_api_token }}"
+    validate_certs: false
+    api_version: pfe.rhpds.com/v1
+    kind: Gitea
+    name: gitea
+    namespace: "{{ ocp4_workload_tenant_gitea_namespace }}"
+  register: r_gitea_cr
+  retries: 60
+  delay: 10
+  until:
+  - r_gitea_cr.resources[0].status.userSetupComplete is defined
+  - r_gitea_cr.resources[0].status.userSetupComplete | bool
+  - r_gitea_cr.resources[0].status.repoMigrationComplete is defined
+  - r_gitea_cr.resources[0].status.repoMigrationComplete | bool
+
+# ------------------------------------------------------------------
+# Export repo URL for gitops_bootstrap (runs after this role)
+# ------------------------------------------------------------------
+- name: Set gitops_bootstrap repo URL for downstream roles
+  ansible.builtin.set_fact:
+    ocp4_workload_gitops_bootstrap_repo_url: >-
+      {{ _ocp4_workload_tenant_gitea_url }}/{{ ocp4_workload_tenant_gitea_username }}/mcp.git
+
+# ------------------------------------------------------------------
+# Save user info
+# ------------------------------------------------------------------
+- name: Save Gitea information
+  agnosticd.core.agnosticd_user_info:
+    data:
+      gitea_url: "{{ _ocp4_workload_tenant_gitea_url }}"
+      gitea_user: "{{ ocp4_workload_tenant_gitea_username }}"
+      gitea_password: "{{ ocp4_workload_tenant_gitea_password }}"

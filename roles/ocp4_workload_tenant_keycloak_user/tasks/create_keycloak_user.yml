@@ -1,0 +1,74 @@
+---
+- name: Get Keycloak admin credentials from secret
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp4_workload_tenant_keycloak_user_keycloak_admin_secret }}"
+    namespace: "{{ ocp4_workload_tenant_keycloak_user_keycloak_namespace }}"
+  register: r_keycloak_admin_secret
+
+- name: Set Keycloak admin credentials
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_keycloak_user_keycloak_admin_user: >-
+      {{ r_keycloak_admin_secret.resources[0].data.username | b64decode }}
+    _ocp4_workload_tenant_keycloak_user_keycloak_admin_password: >-
+      {{ r_keycloak_admin_secret.resources[0].data.password | b64decode }}
+    _ocp4_workload_tenant_keycloak_user_keycloak_host: >-
+      https://sso.{{ _ocp4_workload_tenant_keycloak_user_ingress_domain }}
+
+- name: Get Keycloak admin access token
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    validate_certs: false
+    body_format: form-urlencoded
+    body:
+      client_id: admin-cli
+      username: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_admin_user }}"
+      password: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_admin_password }}"
+      grant_type: password
+  register: r_keycloak_token
+
+- name: Create user in Keycloak
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users"
+    method: POST
+    validate_certs: false
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+    body:
+      username: "{{ ocp4_workload_tenant_keycloak_username }}"
+      enabled: true
+      firstName: "{{ ocp4_workload_tenant_keycloak_username }}"
+      lastName: Demo
+      email: "{{ ocp4_workload_tenant_keycloak_username }}@demo.redhat.com"
+      emailVerified: true
+    status_code: [201, 409]
+  register: r_keycloak_create_user
+
+- name: Get user ID from Keycloak
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_username }}"
+    method: GET
+    validate_certs: false
+    headers:
+      Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+  register: r_keycloak_user
+
+- name: Set password for Keycloak user
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{ r_keycloak_user.json[0].id }}/reset-password"
+    method: PUT
+    validate_certs: false
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+    body:
+      type: password
+      temporary: false
+      value: "{{ ocp4_workload_tenant_keycloak_user_password }}"
+    status_code: 204
