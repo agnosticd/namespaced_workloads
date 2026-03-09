@@ -3,7 +3,7 @@
   ansible.builtin.set_fact:
     _tenant_namespaces: >-
       {{ ocp4_workload_tenant_namespace_suffixes
-         | map('regex_replace', '^(.+)$', '\1-' + ocp4_workload_tenant_namespace_prefix)
+         | map('regex_replace', '^(.+)$', ocp4_workload_tenant_namespace_prefix + '-\1')
          | list }}
 
 # ArgoCD cleanup is handled by ocp4_workload_gitops_bootstrap remove_workload.
