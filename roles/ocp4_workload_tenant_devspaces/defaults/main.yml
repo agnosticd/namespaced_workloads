@@ -7,7 +7,7 @@ ocp4_workload_tenant_devspaces_openshift_api_token: "{{ cluster_admin_agnosticd_
 ocp4_workload_tenant_devspaces_username: "user-{{ guid }}"
 
 # Namespace (created by tenant_namespace role, passed as input)
-# ocp4_workload_tenant_devspaces_namespace: <provided by caller>
+ocp4_workload_tenant_devspaces_namespace: user-{{ guid }}-devworkspace
 
 # DevWorkspace configuration
 ocp4_workload_tenant_devspaces_devworkspace_name: "user-{{ guid }}-workspace"
