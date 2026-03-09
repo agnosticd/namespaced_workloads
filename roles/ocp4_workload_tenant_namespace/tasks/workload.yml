@@ -1,7 +1,7 @@
 ---
 # ==================================================================
 # Create tenant namespaces with optional per-namespace quota/limits.
-# Pattern: {suffix}-{prefix}  e.g. librechat-mcpuser-guid
+# Pattern: {prefix}-{suffix}  e.g. mcpuser-guid-librechat
 #
 # STYLE A — per-namespace quota (new):
 #   ocp4_workload_tenant_namespace_namespaces:
@@ -33,7 +33,7 @@
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: "{{ item.suffix }}-{{ ocp4_workload_tenant_namespace_prefix }}"
+        name: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
         labels:
           created-by: agnosticd
           tenant: "{{ ocp4_workload_tenant_namespace_prefix }}"
@@ -53,7 +53,7 @@
       kind: ResourceQuota
       metadata:
         name: tenant-quota
-        namespace: "{{ item.suffix }}-{{ ocp4_workload_tenant_namespace_prefix }}"
+        namespace: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
       spec:
         hard: "{{ item.quota | default(ocp4_workload_tenant_namespace_quota) }}"
   loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
@@ -72,7 +72,7 @@
       kind: LimitRange
       metadata:
         name: tenant-limit-range
-        namespace: "{{ item.suffix }}-{{ ocp4_workload_tenant_namespace_prefix }}"
+        namespace: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
       spec:
         limits:
         - type: Container
@@ -92,7 +92,7 @@
       kind: RoleBinding
       metadata:
         name: "{{ ocp4_workload_tenant_namespace_role }}-{{ ocp4_workload_tenant_namespace_username }}"
-        namespace: "{{ item.suffix }}-{{ ocp4_workload_tenant_namespace_prefix }}"
+        namespace: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
       roleRef:
         apiGroup: rbac.authorization.k8s.io
         kind: ClusterRole
@@ -111,7 +111,7 @@
   ansible.builtin.set_fact:
     _tenant_namespaces: >-
       {{ ocp4_workload_tenant_namespace_suffixes
-         | map('regex_replace', '^(.+)$', '\1-' + ocp4_workload_tenant_namespace_prefix)
+         | map('regex_replace', '^(.+)$', ocp4_workload_tenant_namespace_prefix + '-\1')
          | list }}
 
 - name: "[Style B] Create tenant namespaces"
