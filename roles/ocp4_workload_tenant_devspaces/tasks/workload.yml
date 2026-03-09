@@ -1,0 +1,20 @@
+---
+# ==================================================================
+# Apply DevSpaces labels/annotations to namespace and create DevWorkspace
+# ==================================================================
+
+- name: Apply DevSpaces labels and annotations to namespace
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_devspaces_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_devspaces_openshift_api_token }}"
+    validate_certs: false
+    state: patched
+    definition: "{{ lookup('template', 'namespace.yml.j2') | from_yaml }}"
+
+- name: Create DevWorkspace
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_devspaces_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_devspaces_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition: "{{ lookup('template', 'devworkspace.yml.j2') | from_yaml }}"
