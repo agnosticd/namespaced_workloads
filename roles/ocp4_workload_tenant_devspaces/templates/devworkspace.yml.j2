@@ -1,0 +1,27 @@
+---
+apiVersion: workspace.devfile.io/v1alpha2
+kind: DevWorkspace
+metadata:
+  name: {{ ocp4_workload_tenant_devspaces_devworkspace_name }}
+  namespace: {{ ocp4_workload_tenant_devspaces_namespace }}
+  labels:
+    created-by: agnosticd
+spec:
+  routingClass: che
+  started: true
+  contributions:
+  - name: ide
+    uri: {{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}
+  template:
+{% if ocp4_workload_tenant_devspaces_devworkspace_projects | default([]) | length > 0 %}
+    projects:
+{% for project in ocp4_workload_tenant_devspaces_devworkspace_projects %}
+    - name: {{ project.name }}
+      git:
+        remotes:
+          origin: {{ project.git_repo_base }}/{{ ocp4_workload_tenant_devspaces_username }}/{{ project.git_repo }}.git
+        checkoutFrom:
+          revision: {{ project.git_revision | default('main') }}
+{% endfor %}
+{% endif %}
+    components: {{ ocp4_workload_tenant_devspaces_devworkspace_components | to_json }}

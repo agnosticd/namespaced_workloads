@@ -1,0 +1,12 @@
+---
+- name: Delete DevWorkspace
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_devspaces_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_devspaces_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: workspace.devfile.io/v1alpha2
+    kind: DevWorkspace
+    name: "{{ ocp4_workload_tenant_devspaces_devworkspace_name }}"
+    namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
+  ignore_errors: true
