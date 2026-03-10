@@ -6,7 +6,7 @@ Ansible role to configure tenant-scoped access to an existing OpenShift GitOps (
 
 - OpenShift GitOps operator already installed and running in `openshift-gitops` namespace
 - Cluster admin API credentials for the target cluster
-- Python passlib library (for bcrypt password hashing)
+- `htpasswd` command available (for bcrypt password hashing)
 
 ## Role Variables
 
@@ -23,7 +23,9 @@ Ansible role to configure tenant-scoped access to an existing OpenShift GitOps (
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ocp4_workload_tenant_openshift_gitops_user_project_prefix` | Prefix for AppProject name | `appproject-` |
+| `ocp4_workload_tenant_openshift_gitops_namespace` | Namespace where ArgoCD is installed | `openshift-gitops` |
+| `ocp4_workload_tenant_openshift_gitops_argocd_cr_name` | Name of the ArgoCD custom resource | `openshift-gitops` |
+| `ocp4_workload_tenant_openshift_gitops_user_project_prefix` | Prefix for AppProject name | `appproject` |
 | `ocp4_workload_tenant_openshift_gitops_user_cluster_resource_whitelist` | Cluster-scoped resources allowed in AppProject | `[{ group: "", kind: Namespace }]` |
 
 ## AppProject Naming
@@ -88,15 +90,15 @@ None
 ### Provision (`ACTION=provision`)
 
 1. **Creates AppProject** - Creates a tenant-scoped ArgoCD AppProject
-2. **Registers User Account** - Adds user account to ArgoCD configuration (`argocd-cm`)
-3. **Sets Password** - Generates bcrypt hash and stores in ArgoCD secret (`argocd-secret`)
-4. **Configures RBAC** - Maps user to AppProject role in ArgoCD RBAC (`argocd-rbac-cm`)
+2. **Registers User Account** - Patches ArgoCD CR to add user account at `/spec/extraConfig/accounts.<user>`
+3. **Sets Password** - Generates htpasswd bcrypt hash and stores in ArgoCD secret (`argocd-secret`)
+4. **Configures RBAC** - Patches ArgoCD CR to add user RBAC binding at `/spec/rbac/policy`
 5. **Outputs User Data** - Provides ArgoCD URL, username, password, and AppProject name
 
 ### Destroy (`ACTION=destroy`)
 
 1. **Removes AppProject** - Deletes the tenant's AppProject
-2. **Removes User Account** - Cleans up user account from `argocd-cm`
+2. **Removes User Account** - Removes user account from ArgoCD CR
 3. **Removes Password** - Cleans up password from `argocd-secret`
 
 ## User Access
@@ -134,7 +136,11 @@ ocp4_workload_tenant_openshift_gitops_user_cluster_resource_whitelist:
 
 ## RBAC Behavior
 
-The role **appends** to existing RBAC policy in `argocd-rbac-cm` using `state: patched`. This preserves other users' RBAC configurations.
+The role **appends** to existing RBAC policy in the ArgoCD CR at `/spec/rbac/policy`. The role reads the current policy, appends the new user's RBAC line, and replaces the entire policy value. This preserves other users' RBAC configurations while being multi-tenant safe.
+
+## Implementation Details
+
+This role patches the ArgoCD custom resource directly rather than ConfigMaps. This prevents the ArgoCD operator from reverting manual ConfigMap changes and ensures tenant configurations persist across operator reconciliation cycles.
 
 ## License
 
