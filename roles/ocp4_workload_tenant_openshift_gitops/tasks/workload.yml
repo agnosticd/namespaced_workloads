@@ -81,6 +81,9 @@
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       patch:
       - op: replace
+        path: /spec/rbac/defaultPolicy
+        value: ''
+      - op: replace
         path: /spec/rbac/policy
         value: "{{ (_current_rbac_policy.rstrip() + '\n' + _new_rbac_line) if _current_rbac_policy else _new_rbac_line }}"
 
