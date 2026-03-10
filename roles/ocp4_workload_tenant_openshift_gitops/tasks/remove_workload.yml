@@ -7,7 +7,7 @@
     state: absent
     api_version: argoproj.io/v1alpha1
     kind: AppProject
-    name: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}"
+    name: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
     namespace: openshift-gitops
 
 - name: Get current argocd-cm ConfigMap

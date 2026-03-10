@@ -33,9 +33,8 @@
         accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}: "apiKey, login"
 
 - name: Generate bcrypt password hash for {{ ocp4_workload_tenant_openshift_gitops_user }}
-  ansible.builtin.shell: |
-    htpasswd -nbBC 10 {{ ocp4_workload_tenant_openshift_gitops_user }} {{ ocp4_workload_tenant_openshift_gitops_user_password }} | cut -d: -f2
-  register: r_password_hash
+  ansible.builtin.set_fact:
+    _password_hash: "{{ ocp4_workload_tenant_openshift_gitops_user_password | password_hash('bcrypt', rounds=10) }}"
   no_log: true
 
 - name: Set password for {{ ocp4_workload_tenant_openshift_gitops_user }} in argocd-secret
@@ -50,7 +49,7 @@
     namespace: openshift-gitops
     definition:
       stringData:
-        accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password: "{{ r_password_hash.stdout }}"
+        accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password: "{{ _password_hash }}"
   no_log: true
 
 - name: Get current argocd-rbac-cm ConfigMap
@@ -74,21 +73,23 @@
     _current_rbac_policy: ""
   when: r_argocd_rbac_cm.resources | length == 0
 
+- name: Build new RBAC policy line
+  ansible.builtin.set_fact:
+    _new_rbac_line: "g, {{ ocp4_workload_tenant_openshift_gitops_user }}, role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
+
 - name: Configure RBAC for {{ ocp4_workload_tenant_openshift_gitops_user }}
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
     validate_certs: false
-    state: present
+    state: patched
     api_version: v1
     kind: ConfigMap
     name: argocd-rbac-cm
     namespace: openshift-gitops
     definition:
       data:
-        policy.csv: |
-          {{ _current_rbac_policy }}
-          g, {{ ocp4_workload_tenant_openshift_gitops_user }}, role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}
+        policy.csv: "{{ (_current_rbac_policy.rstrip() + '\n' + _new_rbac_line) if _current_rbac_policy else _new_rbac_line }}"
 
 - name: Get the OpenShift GitOps ArgoCD server route
   kubernetes.core.k8s_info:
@@ -108,10 +109,10 @@
 # yamllint disable rule:line-length
 - name: Save AgnosticD user data
   agnosticd.core.agnosticd_user_info:
-    msg: "OpenShift GitOps AppProject created: {{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}"
+    msg: "OpenShift GitOps AppProject created: {{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
     data:
       openshift_gitops_server: "{{ _ocp4_workload_tenant_openshift_gitops_url }}"
       openshift_gitops_user: "{{ ocp4_workload_tenant_openshift_gitops_user }}"
       openshift_gitops_password: "{{ ocp4_workload_tenant_openshift_gitops_user_password }}"
-      openshift_gitops_appproject: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}"
+      openshift_gitops_appproject: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
 # yamllint enable rule:line-length
