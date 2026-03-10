@@ -14,27 +14,27 @@
       name: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
 
-  - name: Get current argocd-cm ConfigMap
+  - name: Get current ArgoCD CR
     kubernetes.core.k8s_info:
-      api_version: v1
-      kind: ConfigMap
-      name: argocd-cm
+      api_version: argoproj.io/v1beta1
+      kind: ArgoCD
+      name: "{{ ocp4_workload_tenant_openshift_gitops_argocd_cr_name }}"
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-    register: r_argocd_cm
+    register: r_argocd
 
-  - name: Remove user account from argocd-cm
+  - name: Remove user account from ArgoCD CR
     when:
-    - r_argocd_cm.resources | length > 0
-    - r_argocd_cm.resources[0].data is defined
-    - ('accounts.' ~ ocp4_workload_tenant_openshift_gitops_user) in r_argocd_cm.resources[0].data
-    kubernetes.core.k8s:
-      state: present
-      api_version: v1
-      kind: ConfigMap
-      name: argocd-cm
+    - r_argocd.resources | length > 0
+    - r_argocd.resources[0].spec.extraConfig is defined
+    - ('accounts.' ~ ocp4_workload_tenant_openshift_gitops_user) in r_argocd.resources[0].spec.extraConfig
+    kubernetes.core.k8s_json_patch:
+      api_version: argoproj.io/v1beta1
+      kind: ArgoCD
+      name: "{{ ocp4_workload_tenant_openshift_gitops_argocd_cr_name }}"
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-      definition:
-        data: "{{ r_argocd_cm.resources[0].data | dict2items | rejectattr('key', 'equalto', 'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user) | items2dict }}"
+      patch:
+      - op: remove
+        path: /spec/extraConfig/accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}
 
   - name: Get current argocd-secret Secret
     kubernetes.core.k8s_info:
@@ -49,11 +49,43 @@
     - r_argocd_secret.resources | length > 0
     - r_argocd_secret.resources[0].data is defined
     - ('accounts.' ~ ocp4_workload_tenant_openshift_gitops_user ~ '.password') in r_argocd_secret.resources[0].data
-    kubernetes.core.k8s:
-      state: present
+    kubernetes.core.k8s_json_patch:
       api_version: v1
       kind: Secret
       name: argocd-secret
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-      definition:
-        data: "{{ r_argocd_secret.resources[0].data | dict2items | rejectattr('key', 'equalto', 'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user ~ '.password') | items2dict }}"
+      patch:
+      - op: remove
+        path: /data/accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password
+
+  - name: Build RBAC policy line to remove
+    ansible.builtin.set_fact:
+      _rbac_line_to_remove: "g, {{ ocp4_workload_tenant_openshift_gitops_user }}, role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
+
+  - name: Get current RBAC policy from ArgoCD CR
+    ansible.builtin.set_fact:
+      _current_rbac_policy: "{{ r_argocd.resources[0].spec.rbac.policy | default('') }}"
+    when:
+    - r_argocd.resources | length > 0
+    - r_argocd.resources[0].spec.rbac is defined
+    - r_argocd.resources[0].spec.rbac.policy is defined
+
+  - name: Remove user RBAC line from policy
+    ansible.builtin.set_fact:
+      _updated_rbac_policy: "{{ _current_rbac_policy.split('\n') | reject('equalto', _rbac_line_to_remove) | join('\n') }}"
+    when: _current_rbac_policy is defined
+
+  - name: Update ArgoCD RBAC policy
+    when:
+    - _current_rbac_policy is defined
+    - _updated_rbac_policy is defined
+    - _current_rbac_policy != _updated_rbac_policy
+    kubernetes.core.k8s_json_patch:
+      api_version: argoproj.io/v1beta1
+      kind: ArgoCD
+      name: "{{ ocp4_workload_tenant_openshift_gitops_argocd_cr_name }}"
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
+      patch:
+      - op: replace
+        path: /spec/rbac/policy
+        value: "{{ _updated_rbac_policy }}"

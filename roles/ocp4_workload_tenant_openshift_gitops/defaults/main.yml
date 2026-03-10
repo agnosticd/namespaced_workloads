@@ -6,6 +6,9 @@ ocp4_workload_tenant_openshift_gitops_openshift_api_token: "{{ cluster_admin_agn
 # OpenShift GitOps namespace
 ocp4_workload_tenant_openshift_gitops_namespace: openshift-gitops
 
+# ArgoCD CR name
+ocp4_workload_tenant_openshift_gitops_argocd_cr_name: openshift-gitops
+
 # User to create AppProject for
 ocp4_workload_tenant_openshift_gitops_user: "user-{{ guid }}"
 
