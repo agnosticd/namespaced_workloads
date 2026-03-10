@@ -1,11 +1,17 @@
 ---
 - name: Create tenant AppProject for {{ ocp4_workload_tenant_openshift_gitops_user }}
   kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     state: present
     definition: "{{ lookup('template', 'appproject-user.yaml.j2') }}"
 
 - name: Get current argocd-cm ConfigMap
   kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     api_version: v1
     kind: ConfigMap
     name: argocd-cm
@@ -14,6 +20,9 @@
 
 - name: Add user account to argocd-cm
   kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     state: patched
     api_version: v1
     kind: ConfigMap
@@ -31,6 +40,9 @@
 
 - name: Set password for {{ ocp4_workload_tenant_openshift_gitops_user }} in argocd-secret
   kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     state: patched
     api_version: v1
     kind: Secret
@@ -43,6 +55,9 @@
 
 - name: Get current argocd-rbac-cm ConfigMap
   kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     api_version: v1
     kind: ConfigMap
     name: argocd-rbac-cm
@@ -61,6 +76,9 @@
 
 - name: Configure RBAC for {{ ocp4_workload_tenant_openshift_gitops_user }}
   kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     state: present
     api_version: v1
     kind: ConfigMap
@@ -74,6 +92,9 @@
 
 - name: Get the OpenShift GitOps ArgoCD server route
   kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+    validate_certs: false
     api_version: route.openshift.io/v1
     kind: Route
     name: openshift-gitops-server
