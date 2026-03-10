@@ -11,47 +11,33 @@
       state: present
       definition: "{{ lookup('template', 'appproject-user.yaml.j2') }}"
 
-  - name: Get current argocd-cm ConfigMap
-    kubernetes.core.k8s_info:
-      api_version: v1
-      kind: ConfigMap
-      name: argocd-cm
-      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-    register: r_argocd_cm
-
-  - name: Build user account data for argocd-cm
-    ansible.builtin.set_fact:
-      _argocd_cm_user_data: "{{ {'accounts.' + ocp4_workload_tenant_openshift_gitops_user: 'apiKey, login'} }}"
-
   - name: Add user account to argocd-cm
-    kubernetes.core.k8s:
-      state: patched
+    kubernetes.core.k8s_json_patch:
       api_version: v1
       kind: ConfigMap
       name: argocd-cm
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-      definition:
-        data: "{{ _argocd_cm_user_data }}"
+      patch:
+      - op: add
+        path: /data/accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}
+        value: "apiKey, login"
 
-  - name: Generate bcrypt password hash for {{ ocp4_workload_tenant_openshift_gitops_user }}
-    ansible.builtin.set_fact:
-      _password_hash: "{{ ocp4_workload_tenant_openshift_gitops_user_password | password_hash('bcrypt', rounds=10) }}"
-    no_log: true
-
-  - name: Build password data for argocd-secret
-    ansible.builtin.set_fact:
-      _argocd_secret_password_data: "{{ {'accounts.' + ocp4_workload_tenant_openshift_gitops_user + '.password': _password_hash} }}"
+  - name: Generate HTPasswd hash for password
+    ansible.builtin.shell: |
+      htpasswd -nbBC 10 "" "{{ ocp4_workload_tenant_openshift_gitops_user_password }}" | tr -d ':\n'
+    register: r_htpasswd_hash
     no_log: true
 
   - name: Set password for {{ ocp4_workload_tenant_openshift_gitops_user }} in argocd-secret
-    kubernetes.core.k8s:
-      state: patched
+    kubernetes.core.k8s_json_patch:
       api_version: v1
       kind: Secret
       name: argocd-secret
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-      definition:
-        stringData: "{{ _argocd_secret_password_data }}"
+      patch:
+      - op: add
+        path: /data/accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password
+        value: "{{ r_htpasswd_hash.stdout | b64encode }}"
     no_log: true
 
   - name: Get current argocd-rbac-cm ConfigMap
