@@ -1,0 +1,19 @@
+---
+# Cluster connection
+ocp4_workload_tenant_openshift_gitops_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_openshift_gitops_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# User to create AppProject for
+ocp4_workload_tenant_openshift_gitops_user: "user-{{ guid }}"
+
+# User credentials for ArgoCD login
+ocp4_workload_tenant_openshift_gitops_user_password: "{{ common_password | default('openshift') }}"
+
+# Prefix for AppProject name
+ocp4_workload_tenant_openshift_gitops_user_project_prefix: "appproject"
+
+# Cluster-scoped resources allowed in the AppProject
+# Example: [{ group: "", kind: Namespace }]
+ocp4_workload_tenant_openshift_gitops_user_cluster_resource_whitelist:
+- group: ""
+  kind: Namespace

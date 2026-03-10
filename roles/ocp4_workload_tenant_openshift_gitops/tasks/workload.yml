@@ -1,0 +1,96 @@
+---
+- name: Create tenant AppProject for {{ ocp4_workload_tenant_openshift_gitops_user }}
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'appproject-user.yaml.j2') }}"
+
+- name: Get current argocd-cm ConfigMap
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: argocd-cm
+    namespace: openshift-gitops
+  register: r_argocd_cm
+
+- name: Add user account to argocd-cm
+  kubernetes.core.k8s:
+    state: patched
+    api_version: v1
+    kind: ConfigMap
+    name: argocd-cm
+    namespace: openshift-gitops
+    definition:
+      data:
+        accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}: "apiKey, login"
+
+- name: Generate bcrypt password hash for {{ ocp4_workload_tenant_openshift_gitops_user }}
+  ansible.builtin.shell: |
+    htpasswd -nbBC 10 {{ ocp4_workload_tenant_openshift_gitops_user }} {{ ocp4_workload_tenant_openshift_gitops_user_password }} | cut -d: -f2
+  register: r_password_hash
+  no_log: true
+
+- name: Set password for {{ ocp4_workload_tenant_openshift_gitops_user }} in argocd-secret
+  kubernetes.core.k8s:
+    state: patched
+    api_version: v1
+    kind: Secret
+    name: argocd-secret
+    namespace: openshift-gitops
+    definition:
+      stringData:
+        accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password: "{{ r_password_hash.stdout }}"
+  no_log: true
+
+- name: Get current argocd-rbac-cm ConfigMap
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: argocd-rbac-cm
+    namespace: openshift-gitops
+  register: r_argocd_rbac_cm
+
+- name: Set current RBAC policy
+  ansible.builtin.set_fact:
+    _current_rbac_policy: "{{ r_argocd_rbac_cm.resources[0].data['policy.csv'] | default('') }}"
+  when: r_argocd_rbac_cm.resources | length > 0
+
+- name: Set empty RBAC policy if ConfigMap doesn't exist
+  ansible.builtin.set_fact:
+    _current_rbac_policy: ""
+  when: r_argocd_rbac_cm.resources | length == 0
+
+- name: Configure RBAC for {{ ocp4_workload_tenant_openshift_gitops_user }}
+  kubernetes.core.k8s:
+    state: present
+    api_version: v1
+    kind: ConfigMap
+    name: argocd-rbac-cm
+    namespace: openshift-gitops
+    definition:
+      data:
+        policy.csv: |
+          {{ _current_rbac_policy }}
+          g, {{ ocp4_workload_tenant_openshift_gitops_user }}, role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}
+
+- name: Get the OpenShift GitOps ArgoCD server route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: openshift-gitops-server
+    namespace: openshift-gitops
+  register: r_openshift_gitops_server_route
+
+- name: Set ArgoCD URL fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_openshift_gitops_url: "https://{{ r_openshift_gitops_server_route.resources[0].spec.host }}"
+
+# yamllint disable rule:line-length
+- name: Save AgnosticD user data
+  agnosticd.core.agnosticd_user_info:
+    msg: "OpenShift GitOps AppProject created: {{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}"
+    data:
+      openshift_gitops_server: "{{ _ocp4_workload_tenant_openshift_gitops_url }}"
+      openshift_gitops_user: "{{ ocp4_workload_tenant_openshift_gitops_user }}"
+      openshift_gitops_password: "{{ ocp4_workload_tenant_openshift_gitops_user_password }}"
+      openshift_gitops_appproject: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}{{ ocp4_workload_tenant_openshift_gitops_user }}"
+# yamllint enable rule:line-length

@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: Red Hat GPTE
+  description: Tenant-specific OpenShift GitOps (ArgoCD) configuration
+  company: Red Hat
+  license: GPL-3.0-or-later
+  min_ansible_version: '2.15'
+  platforms:
+  - name: Fedora
+    versions:
+    - all
+
+dependencies: []
