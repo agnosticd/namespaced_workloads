@@ -20,8 +20,7 @@
       state: patched
       definition:
         spec:
-          extraConfig:
-            "accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}": "apiKey, login"
+          extraConfig: "{{ {'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user: 'apiKey, login'} }}"
 
   - name: Generate HTPasswd hash for password
     ansible.builtin.shell: |
