@@ -1,0 +1,59 @@
+---
+- name: Remove tenant OpenShift GitOps access
+  module_defaults:
+    group/kubernetes.core.k8s:
+      host: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_url }}"
+      api_key: "{{ ocp4_workload_tenant_openshift_gitops_openshift_api_token }}"
+      validate_certs: false
+  block:
+  - name: Remove tenant AppProject
+    kubernetes.core.k8s:
+      state: absent
+      api_version: argoproj.io/v1alpha1
+      kind: AppProject
+      name: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
+
+  - name: Get current argocd-cm ConfigMap
+    kubernetes.core.k8s_info:
+      api_version: v1
+      kind: ConfigMap
+      name: argocd-cm
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
+    register: r_argocd_cm
+
+  - name: Remove user account from argocd-cm
+    when:
+    - r_argocd_cm.resources | length > 0
+    - r_argocd_cm.resources[0].data is defined
+    - ('accounts.' ~ ocp4_workload_tenant_openshift_gitops_user) in r_argocd_cm.resources[0].data
+    kubernetes.core.k8s:
+      state: present
+      api_version: v1
+      kind: ConfigMap
+      name: argocd-cm
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
+      definition:
+        data: "{{ r_argocd_cm.resources[0].data | dict2items | rejectattr('key', 'equalto', 'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user) | items2dict }}"
+
+  - name: Get current argocd-secret Secret
+    kubernetes.core.k8s_info:
+      api_version: v1
+      kind: Secret
+      name: argocd-secret
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
+    register: r_argocd_secret
+
+  - name: Remove user password from argocd-secret
+    when:
+    - r_argocd_secret.resources | length > 0
+    - r_argocd_secret.resources[0].data is defined
+    - ('accounts.' ~ ocp4_workload_tenant_openshift_gitops_user ~ '.password') in r_argocd_secret.resources[0].data
+    kubernetes.core.k8s:
+      state: present
+      api_version: v1
+      kind: Secret
+      name: argocd-secret
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
+      definition:
+        data: "{{ r_argocd_secret.resources[0].data | dict2items | rejectattr('key', 'equalto', 'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user ~ '.password') | items2dict }}"
