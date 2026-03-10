@@ -11,6 +11,17 @@
       state: present
       definition: "{{ lookup('template', 'appproject-user.yaml.j2') }}"
 
+  - name: Add extraConfig to ArgoCD
+    kubernetes.core.k8s_json_patch:
+      api_version: argoproj.io/v1beta1
+      kind: ArgoCD
+      namespace: "{{ code_red_breach_challenge_argo_customize_argo_namespace }}"
+      name: openshift-gitops
+      patch:
+        - op: add
+          path: /spec/extraConfig
+          value: {}
+
   - name: Add user account to ArgoCD CR
     kubernetes.core.k8s_json_patch:
       api_version: argoproj.io/v1beta1
