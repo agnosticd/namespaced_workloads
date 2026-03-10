@@ -5,6 +5,6 @@
     file: workload.yml
 
 - name: Running workload removal tasks
-  when: ACTION == "remove" or ACTION == "destroy"
+  when: ACTION | default('provision') in ['remove', 'destroy']
   ansible.builtin.include_tasks:
     file: remove_workload.yml
