@@ -19,6 +19,10 @@
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
     register: r_argocd_cm
 
+  - name: Build user account data for argocd-cm
+    ansible.builtin.set_fact:
+      _argocd_cm_user_data: "{{ {'accounts.' + ocp4_workload_tenant_openshift_gitops_user: 'apiKey, login'} }}"
+
   - name: Add user account to argocd-cm
     kubernetes.core.k8s:
       state: patched
@@ -27,12 +31,16 @@
       name: argocd-cm
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
-        data:
-          accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}: "apiKey, login"
+        data: "{{ _argocd_cm_user_data }}"
 
   - name: Generate bcrypt password hash for {{ ocp4_workload_tenant_openshift_gitops_user }}
     ansible.builtin.set_fact:
       _password_hash: "{{ ocp4_workload_tenant_openshift_gitops_user_password | password_hash('bcrypt', rounds=10) }}"
+    no_log: true
+
+  - name: Build password data for argocd-secret
+    ansible.builtin.set_fact:
+      _argocd_secret_password_data: "{{ {'accounts.' + ocp4_workload_tenant_openshift_gitops_user + '.password': _password_hash} }}"
     no_log: true
 
   - name: Set password for {{ ocp4_workload_tenant_openshift_gitops_user }} in argocd-secret
@@ -43,8 +51,7 @@
       name: argocd-secret
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
-        stringData:
-          accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password: "{{ _password_hash }}"
+        stringData: "{{ _argocd_secret_password_data }}"
     no_log: true
 
   - name: Get current argocd-rbac-cm ConfigMap
