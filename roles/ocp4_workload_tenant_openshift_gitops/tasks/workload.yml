@@ -15,7 +15,7 @@
     kubernetes.core.k8s_json_patch:
       api_version: argoproj.io/v1beta1
       kind: ArgoCD
-      namespace: "{{ code_red_breach_challenge_argo_customize_argo_namespace }}"
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       name: openshift-gitops
       patch:
         - op: add
