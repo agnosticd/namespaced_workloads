@@ -11,27 +11,17 @@
       state: present
       definition: "{{ lookup('template', 'appproject-user.yaml.j2') }}"
 
-  - name: Add extraConfig to ArgoCD
-    kubernetes.core.k8s_json_patch:
+  - name: Add user account to ArgoCD CR
+    kubernetes.core.k8s:
       api_version: argoproj.io/v1beta1
       kind: ArgoCD
       namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       name: openshift-gitops
-      patch:
-        - op: add
-          path: /spec/extraConfig
-          value: {}
-
-  - name: Add user account to ArgoCD CR
-    kubernetes.core.k8s_json_patch:
-      api_version: argoproj.io/v1beta1
-      kind: ArgoCD
-      name: "{{ ocp4_workload_tenant_openshift_gitops_argocd_cr_name }}"
-      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-      patch:
-      - op: add
-        path: /spec/extraConfig/accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}
-        value: login
+      state: patched
+      definition:
+        spec:
+          extraConfig:
+            "accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}": "apiKey, login"
 
   - name: Generate HTPasswd hash for password
     ansible.builtin.shell: |
@@ -50,42 +40,6 @@
         path: /data/accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password
         value: "{{ r_htpasswd_hash.stdout | b64encode }}"
     no_log: true
-
-  - name: Get current ArgoCD RBAC policy
-    kubernetes.core.k8s_info:
-      api_version: argoproj.io/v1beta1
-      kind: ArgoCD
-      name: "{{ ocp4_workload_tenant_openshift_gitops_argocd_cr_name }}"
-      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-    register: r_argocd
-
-  - name: Set current RBAC policy
-    ansible.builtin.set_fact:
-      _current_rbac_policy: "{{ r_argocd.resources[0].spec.rbac.policy | default('') }}"
-    when: r_argocd.resources | length > 0
-
-  - name: Set empty RBAC policy if not defined
-    ansible.builtin.set_fact:
-      _current_rbac_policy: ""
-    when: r_argocd.resources | length == 0 or r_argocd.resources[0].spec.rbac is not defined or r_argocd.resources[0].spec.rbac.policy is not defined
-
-  - name: Build new RBAC policy line
-    ansible.builtin.set_fact:
-      _new_rbac_line: "g, {{ ocp4_workload_tenant_openshift_gitops_user }}, role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
-
-  - name: Configure RBAC for {{ ocp4_workload_tenant_openshift_gitops_user }} in ArgoCD CR
-    kubernetes.core.k8s_json_patch:
-      api_version: argoproj.io/v1beta1
-      kind: ArgoCD
-      name: "{{ ocp4_workload_tenant_openshift_gitops_argocd_cr_name }}"
-      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
-      patch:
-      - op: replace
-        path: /spec/rbac/defaultPolicy
-        value: ''
-      - op: replace
-        path: /spec/rbac/policy
-        value: "{{ (_current_rbac_policy.rstrip() + '\n' + _new_rbac_line) if _current_rbac_policy else _new_rbac_line }}"
 
   - name: Get the OpenShift GitOps ArgoCD server route
     kubernetes.core.k8s_info:
