@@ -3,6 +3,9 @@
 ocp4_workload_tenant_openshift_gitops_openshift_api_url: "{{ sandbox_openshift_api_url }}"
 ocp4_workload_tenant_openshift_gitops_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
+# OpenShift GitOps namespace
+ocp4_workload_tenant_openshift_gitops_namespace: openshift-gitops
+
 # User to create AppProject for
 ocp4_workload_tenant_openshift_gitops_user: "user-{{ guid }}"
 

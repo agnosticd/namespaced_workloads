@@ -3,7 +3,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: {{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}
-  namespace: openshift-gitops
+  namespace: {{ ocp4_workload_tenant_openshift_gitops_namespace }}
   labels:
     app.kubernetes.io/managed-by: agnosticd
 spec:

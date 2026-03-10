@@ -16,7 +16,7 @@
       api_version: v1
       kind: ConfigMap
       name: argocd-cm
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
     register: r_argocd_cm
 
   - name: Add user account to argocd-cm
@@ -25,7 +25,7 @@
       api_version: v1
       kind: ConfigMap
       name: argocd-cm
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
         data:
           accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}: "apiKey, login"
@@ -41,7 +41,7 @@
       api_version: v1
       kind: Secret
       name: argocd-secret
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
         stringData:
           accounts.{{ ocp4_workload_tenant_openshift_gitops_user }}.password: "{{ _password_hash }}"
@@ -52,7 +52,7 @@
       api_version: v1
       kind: ConfigMap
       name: argocd-rbac-cm
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
     register: r_argocd_rbac_cm
 
   - name: Set current RBAC policy
@@ -75,7 +75,7 @@
       api_version: v1
       kind: ConfigMap
       name: argocd-rbac-cm
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
         data:
           policy.csv: "{{ (_current_rbac_policy.rstrip() + '\n' + _new_rbac_line) if _current_rbac_policy else _new_rbac_line }}"
@@ -85,7 +85,7 @@
       api_version: route.openshift.io/v1
       kind: Route
       name: openshift-gitops-server
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
     register: r_openshift_gitops_server_route
 
   - name: Set ArgoCD URL fact

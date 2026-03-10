@@ -12,14 +12,14 @@
       api_version: argoproj.io/v1alpha1
       kind: AppProject
       name: "{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
 
   - name: Get current argocd-cm ConfigMap
     kubernetes.core.k8s_info:
       api_version: v1
       kind: ConfigMap
       name: argocd-cm
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
     register: r_argocd_cm
 
   - name: Remove user account from argocd-cm
@@ -32,7 +32,7 @@
       api_version: v1
       kind: ConfigMap
       name: argocd-cm
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
         data: "{{ r_argocd_cm.resources[0].data | dict2items | rejectattr('key', 'equalto', 'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user) | items2dict }}"
 
@@ -41,7 +41,7 @@
       api_version: v1
       kind: Secret
       name: argocd-secret
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
     register: r_argocd_secret
 
   - name: Remove user password from argocd-secret
@@ -54,6 +54,6 @@
       api_version: v1
       kind: Secret
       name: argocd-secret
-      namespace: openshift-gitops
+      namespace: "{{ ocp4_workload_tenant_openshift_gitops_namespace }}"
       definition:
         data: "{{ r_argocd_secret.resources[0].data | dict2items | rejectattr('key', 'equalto', 'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user ~ '.password') | items2dict }}"
