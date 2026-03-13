@@ -1,30 +1,59 @@
 ---
-# Build the namespace list from whichever style was used at provision time.
-# Style A uses ocp4_workload_tenant_namespace_namespaces (list of {suffix: ...} dicts).
-# Style B uses ocp4_workload_tenant_namespace_suffixes (plain list of strings).
-- name: Build namespace list (Style A — per-namespace config)
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length > 0
+# -----------------------------------------------------------------------
+# Build the same namespace list used at provision time so we know exactly
+# what to delete. This must stay in sync with workload.yml logic.
+# -----------------------------------------------------------------------
+- name: Initialize namespace list
+  ansible.builtin.set_fact:
+    _tenant_namespaces: []
+
+- name: Build namespace list — single namespace
+  when: ocp4_workload_tenant_namespace_suffixes | length == 0
+  ansible.builtin.set_fact:
+    _tenant_namespaces:
+      - name: "{{ ocp4_workload_tenant_namespace_username }}"
+
+- name: Build namespace list — from suffix entries
+  when: ocp4_workload_tenant_namespace_suffixes | length > 0
   ansible.builtin.set_fact:
     _tenant_namespaces: >-
-      {{ ocp4_workload_tenant_namespace_namespaces
-         | map(attribute='suffix')
-         | map('regex_replace', '^(.+)$', ocp4_workload_tenant_namespace_prefix + '-\1')
-         | list }}
+      {{ _tenant_namespaces + [{'name': ocp4_workload_tenant_namespace_username ~ '-' ~ item.suffix}] }}
+  loop: "{{ ocp4_workload_tenant_namespace_suffixes }}"
+  loop_control:
+    label: "{{ item.suffix }}"
 
-- name: Build namespace list (Style B — suffix list)
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length == 0
-  ansible.builtin.set_fact:
-    _tenant_namespaces: >-
-      {{ ocp4_workload_tenant_namespace_suffixes
-         | map('regex_replace', '^(.+)$', ocp4_workload_tenant_namespace_prefix + '-\1')
-         | list }}
+# -----------------------------------------------------------------------
+# Delete ClusterResourceQuota first.
+# Removing quota enforcement before namespace termination avoids any
+# edge cases where finalizer-driven object deletion is blocked by quota.
+# -----------------------------------------------------------------------
+- name: Delete ClusterResourceQuota for tenant
+  when: ocp4_workload_tenant_namespace_use_cluster_quota | bool
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: quota.openshift.io/v1
+    kind: ClusterResourceQuota
+    name: "tenant-{{ ocp4_workload_tenant_namespace_username }}"
+    wait: true
+    wait_timeout: 60
 
+# -----------------------------------------------------------------------
+# Trigger deletion of all namespaces without waiting so they terminate
+# in parallel on the cluster side.
+#
 # ArgoCD cleanup is handled by ocp4_workload_gitops_bootstrap remove_workload.
-# The bootstrap Application has resources-finalizer.argocd.argoproj.io so
-# deleting it cascades to child Applications and their K8s resources.
+# The bootstrap Application carries resources-finalizer.argocd.argoproj.io
+# so deleting it cascades to child Applications and their resources.
 # By the time this role runs, ArgoCD has already cleaned up.
-
-- name: Delete tenant namespaces
+#
+# NOTE: Do NOT set ignore_errors here. Failure to initiate deletion of a
+# namespace on a long-lived shared cluster is a real problem that must be
+# surfaced and resolved, not silently skipped.
+# -----------------------------------------------------------------------
+- name: Trigger tenant namespace deletion
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
@@ -32,8 +61,30 @@
     state: absent
     api_version: v1
     kind: Namespace
-    name: "{{ ns_item }}"
+    name: "{{ item.name }}"
   loop: "{{ _tenant_namespaces }}"
   loop_control:
-    loop_var: ns_item
-  ignore_errors: true
+    label: "{{ item.name }}"
+
+# -----------------------------------------------------------------------
+# Wait for each namespace to be fully terminated.
+# Namespaces terminated in parallel above; polling here confirms each is
+# truly gone before we consider cleanup complete.
+# A stuck namespace (e.g. hung finalizer) will surface as a task failure
+# rather than being silently left behind.
+# -----------------------------------------------------------------------
+- name: Wait for tenant namespace to be fully removed
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Namespace
+    name: "{{ item.name }}"
+  register: _ns_check
+  until: _ns_check.resources | length == 0
+  retries: 30
+  delay: 10
+  loop: "{{ _tenant_namespaces }}"
+  loop_control:
+    label: "{{ item.name }}"

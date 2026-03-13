@@ -1,121 +1,45 @@
 ---
-# ==================================================================
-# Create tenant namespaces with optional per-namespace quota/limits.
-# Pattern: {prefix}-{suffix}  e.g. mcpuser-guid-librechat
+# -----------------------------------------------------------------------
+# Build _tenant_namespaces — a list of dicts with keys:
+#   name        — full namespace name
+#   quota       — ResourceQuota hard limits (ignored when use_cluster_quota)
+#   limit_range — LimitRange container defaults
 #
-# STYLE A — per-namespace quota (new):
-#   ocp4_workload_tenant_namespace_namespaces:
-#   - suffix: librechat
-#     quota:       { limits.cpu: "4", limits.memory: 8Gi }
-#     limit_range: { default: { cpu: 500m, memory: 1Gi },
-#                    defaultRequest: { cpu: 50m, memory: 128Mi } }
-#   - suffix: mcp-gitea
-#     quota:       { limits.cpu: "1", limits.memory: 2Gi }
-#   - suffix: agent   # no per-ns config — falls back to global
-#
-# STYLE B — shared quota for all (backward compatible, existing syntax):
-#   ocp4_workload_tenant_namespace_suffixes: [librechat, mcp-gitea, agent]
-#   ocp4_workload_tenant_namespace_quota: { limits.cpu: "2", ... }
-#   ocp4_workload_tenant_namespace_limit_range: { default: { ... } }
-# ==================================================================
+# Two modes:
+#   • ocp4_workload_tenant_namespace_suffixes is empty
+#       → single namespace named after the user
+#   • ocp4_workload_tenant_namespace_suffixes has entries
+#       → one namespace per entry: {username}-{suffix}
+# -----------------------------------------------------------------------
+- name: Initialize namespace list
+  ansible.builtin.set_fact:
+    _tenant_namespaces: []
 
-# ------------------------------------------------------------------
-# STYLE A — per-namespace configuration
-# ------------------------------------------------------------------
-- name: "[Style A] Create namespace"
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length > 0
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
-    validate_certs: false
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
-        labels:
-          created-by: agnosticd
-          tenant: "{{ ocp4_workload_tenant_namespace_prefix }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
+- name: Build namespace list — single namespace (no suffixes defined)
+  when: ocp4_workload_tenant_namespace_suffixes | length == 0
+  ansible.builtin.set_fact:
+    _tenant_namespaces:
+      - name: "{{ ocp4_workload_tenant_namespace_username }}"
+        quota: "{{ ocp4_workload_tenant_namespace_default_quota }}"
+        limit_range: "{{ ocp4_workload_tenant_namespace_default_limit_range }}"
 
-- name: "[Style A] Apply ResourceQuota"
-  when:
-  - ocp4_workload_tenant_namespace_namespaces | default([]) | length > 0
-  - (item.quota | default(ocp4_workload_tenant_namespace_quota)) | length > 0
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
-    validate_certs: false
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ResourceQuota
-      metadata:
-        name: tenant-quota
-        namespace: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
-      spec:
-        hard: "{{ item.quota | default(ocp4_workload_tenant_namespace_quota) }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
-
-- name: "[Style A] Apply LimitRange"
-  when:
-  - ocp4_workload_tenant_namespace_namespaces | default([]) | length > 0
-  - (item.limit_range | default(ocp4_workload_tenant_namespace_limit_range)) | length > 0
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
-    validate_certs: false
-    state: present
-    definition:
-      apiVersion: v1
-      kind: LimitRange
-      metadata:
-        name: tenant-limit-range
-        namespace: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
-      spec:
-        limits:
-        - type: Container
-          default: "{{ (item.limit_range | default(ocp4_workload_tenant_namespace_limit_range)).default | default({}) }}"
-          defaultRequest: "{{ (item.limit_range | default(ocp4_workload_tenant_namespace_limit_range)).defaultRequest | default({}) }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
-
-- name: "[Style A] Grant user access"
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length > 0
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
-    validate_certs: false
-    state: present
-    definition:
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: RoleBinding
-      metadata:
-        name: "{{ ocp4_workload_tenant_namespace_role }}-{{ ocp4_workload_tenant_namespace_username }}"
-        namespace: "{{ ocp4_workload_tenant_namespace_prefix }}-{{ item.suffix }}"
-      roleRef:
-        apiGroup: rbac.authorization.k8s.io
-        kind: ClusterRole
-        name: "{{ ocp4_workload_tenant_namespace_role }}"
-      subjects:
-      - apiGroup: rbac.authorization.k8s.io
-        kind: User
-        name: "{{ ocp4_workload_tenant_namespace_username }}"
-  loop: "{{ ocp4_workload_tenant_namespace_namespaces }}"
-
-# ------------------------------------------------------------------
-# STYLE B — simple suffix list (backward compatible)
-# ------------------------------------------------------------------
-- name: "[Style B] Build namespace list from suffixes"
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length == 0
+- name: Build namespace list — from suffix entries
+  when: ocp4_workload_tenant_namespace_suffixes | length > 0
   ansible.builtin.set_fact:
     _tenant_namespaces: >-
-      {{ ocp4_workload_tenant_namespace_suffixes
-         | map('regex_replace', '^(.+)$', ocp4_workload_tenant_namespace_prefix + '-\1')
-         | list }}
+      {{ _tenant_namespaces + [{
+           'name': ocp4_workload_tenant_namespace_username ~ '-' ~ item.suffix,
+           'quota': item.quota | default(ocp4_workload_tenant_namespace_default_quota),
+           'limit_range': item.limit_range | default(ocp4_workload_tenant_namespace_default_limit_range)
+         }] }}
+  loop: "{{ ocp4_workload_tenant_namespace_suffixes }}"
+  loop_control:
+    label: "{{ item.suffix }}"
 
-- name: "[Style B] Create tenant namespaces"
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length == 0
+# -----------------------------------------------------------------------
+# Create namespaces — label with tenant for CRQ selector targeting
+# -----------------------------------------------------------------------
+- name: Create tenant namespace
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
@@ -125,39 +49,19 @@
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: "{{ ns_item }}"
+        name: "{{ item.name }}"
         labels:
           created-by: agnosticd
-          tenant: "{{ ocp4_workload_tenant_namespace_prefix }}"
-  loop: "{{ _tenant_namespaces | default([]) }}"
+          tenant: "{{ ocp4_workload_tenant_namespace_username }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
-    loop_var: ns_item
+    label: "{{ item.name }}"
 
-- name: "[Style B] Apply ResourceQuota to all namespaces"
-  when:
-  - ocp4_workload_tenant_namespace_namespaces | default([]) | length == 0
-  - ocp4_workload_tenant_namespace_quota | length > 0
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
-    validate_certs: false
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ResourceQuota
-      metadata:
-        name: tenant-quota
-        namespace: "{{ ns_item }}"
-      spec:
-        hard: "{{ ocp4_workload_tenant_namespace_quota }}"
-  loop: "{{ _tenant_namespaces | default([]) }}"
-  loop_control:
-    loop_var: ns_item
-
-- name: "[Style B] Apply LimitRange to all namespaces"
-  when:
-  - ocp4_workload_tenant_namespace_namespaces | default([]) | length == 0
-  - ocp4_workload_tenant_namespace_limit_range | length > 0
+# -----------------------------------------------------------------------
+# LimitRange — applied to every namespace regardless of quota mode.
+# Ensures containers without explicit resource specs get sensible limits.
+# -----------------------------------------------------------------------
+- name: Apply LimitRange to namespace
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
@@ -168,18 +72,63 @@
       kind: LimitRange
       metadata:
         name: tenant-limit-range
-        namespace: "{{ ns_item }}"
+        namespace: "{{ item.name }}"
       spec:
         limits:
         - type: Container
-          default: "{{ ocp4_workload_tenant_namespace_limit_range.default | default({}) }}"
-          defaultRequest: "{{ ocp4_workload_tenant_namespace_limit_range.defaultRequest | default({}) }}"
-  loop: "{{ _tenant_namespaces | default([]) }}"
+          default: "{{ item.limit_range.default | default({}) }}"
+          defaultRequest: "{{ item.limit_range.defaultRequest | default({}) }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
-    loop_var: ns_item
+    label: "{{ item.name }}"
 
-- name: "[Style B] Grant user access in each namespace"
-  when: ocp4_workload_tenant_namespace_namespaces | default([]) | length == 0
+# -----------------------------------------------------------------------
+# Quota — one ClusterResourceQuota (shared pool) or per-namespace
+# ResourceQuota depending on use_cluster_quota.
+# -----------------------------------------------------------------------
+- name: Create ClusterResourceQuota for tenant
+  when: ocp4_workload_tenant_namespace_use_cluster_quota | bool
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: quota.openshift.io/v1
+      kind: ClusterResourceQuota
+      metadata:
+        name: "tenant-{{ ocp4_workload_tenant_namespace_username }}"
+      spec:
+        quota:
+          hard: "{{ ocp4_workload_tenant_namespace_default_quota }}"
+        selector:
+          labels:
+            matchLabels:
+              tenant: "{{ ocp4_workload_tenant_namespace_username }}"
+
+- name: Apply ResourceQuota to namespace
+  when: not (ocp4_workload_tenant_namespace_use_cluster_quota | bool)
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ResourceQuota
+      metadata:
+        name: tenant-quota
+        namespace: "{{ item.name }}"
+      spec:
+        hard: "{{ item.quota }}"
+  loop: "{{ _tenant_namespaces }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# -----------------------------------------------------------------------
+# RBAC — grant user admin access in each namespace
+# -----------------------------------------------------------------------
+- name: Grant user access in namespace
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
@@ -190,7 +139,7 @@
       kind: RoleBinding
       metadata:
         name: "{{ ocp4_workload_tenant_namespace_role }}-{{ ocp4_workload_tenant_namespace_username }}"
-        namespace: "{{ ns_item }}"
+        namespace: "{{ item.name }}"
       roleRef:
         apiGroup: rbac.authorization.k8s.io
         kind: ClusterRole
@@ -199,6 +148,6 @@
       - apiGroup: rbac.authorization.k8s.io
         kind: User
         name: "{{ ocp4_workload_tenant_namespace_username }}"
-  loop: "{{ _tenant_namespaces | default([]) }}"
+  loop: "{{ _tenant_namespaces }}"
   loop_control:
-    loop_var: ns_item
+    label: "{{ item.name }}"

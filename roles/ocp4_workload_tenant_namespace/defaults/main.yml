@@ -3,47 +3,61 @@
 ocp4_workload_tenant_namespace_openshift_api_url: "{{ sandbox_openshift_api_url }}"
 ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
-# User to grant access in each namespace
+# User granted access to each namespace and used as the namespace name/prefix.
 ocp4_workload_tenant_namespace_username: "user-{{ guid }}"
 
-# Role to bind for the user in each namespace
+# RBAC role bound to the user in each namespace.
 ocp4_workload_tenant_namespace_role: admin
 
-# Prefix prepended to each suffix: {suffix}-{prefix}
-# Defaults to ocp4_workload_tenant_namespace_username which defaults to user-{guid}
-ocp4_workload_tenant_namespace_prefix: "{{ ocp4_workload_tenant_namespace_username }}"
-
-# STYLE A — per-namespace config (supports different quota per namespace):
-# ocp4_workload_tenant_namespace_namespaces:
-# - suffix: librechat
-#   quota: { limits.cpu: "4", limits.memory: 8Gi }
-#   limit_range: { default: { cpu: 500m, memory: 1Gi }, defaultRequest: { cpu: 50m, memory: 128Mi } }
-# - suffix: mcp-gitea
-#   quota: { limits.cpu: "1", limits.memory: 2Gi }
-# - suffix: agent  # no per-ns config, uses global quota/limit_range
-ocp4_workload_tenant_namespace_namespaces: []
-
-# STYLE B — simple suffix list, all namespaces get same quota (backward compatible):
+# Namespaces to create. Leave empty to create a single namespace named after
+# the user (no suffix). Each entry requires 'suffix'. 'quota' and
+# 'limit_range' override the role defaults below and are only used when
+# use_cluster_quota is false.
+#
 # ocp4_workload_tenant_namespace_suffixes:
-# - librechat
-# - mcp-gitea
+# - suffix: myapp
+#   quota:
+#     limits.cpu: "4"
+#     requests.cpu: "4"
+#     limits.memory: 8Gi
+#     requests.memory: 8Gi
+#     requests.storage: 20Gi
+#   limit_range:
+#     default:
+#       cpu: "2"
+#       memory: 4Gi
+#     defaultRequest:
+#       cpu: 500m
+#       memory: 1Gi
+# - suffix: mydb   # no quota/limit_range — uses role defaults
 ocp4_workload_tenant_namespace_suffixes: []
 
-# ResourceQuota applied to each namespace (optional)
-# ocp4_workload_tenant_namespace_quota:
-#   limits.cpu: "2"
-#   requests.cpu: "2"
-#   limits.memory: 4Gi
-#   requests.memory: 4Gi
-#   requests.storage: 20Gi
-ocp4_workload_tenant_namespace_quota: {}
+# Use an OpenShift ClusterResourceQuota (CRQ) scoped to the tenant label.
+# This gives the user a shared resource pool across all their namespaces
+# rather than fixed per-namespace caps — useful when namespace boundaries
+# are not known at design time.
+# When false, a per-namespace ResourceQuota is applied instead.
+ocp4_workload_tenant_namespace_use_cluster_quota: true
 
-# LimitRange container defaults applied to each namespace (optional)
-# ocp4_workload_tenant_namespace_limit_range:
-#   default:
-#     cpu: 500m
-#     memory: 512Mi
-#   defaultRequest:
-#     cpu: 50m
-#     memory: 128Mi
-ocp4_workload_tenant_namespace_limit_range: {}
+# Total resource pool for the tenant.
+# Used as ClusterResourceQuota hard limits when use_cluster_quota is true,
+# or as the default per-namespace ResourceQuota when use_cluster_quota is false
+# and no per-namespace quota is defined in the suffix entry.
+ocp4_workload_tenant_namespace_default_quota:
+  limits.cpu: "4"
+  requests.cpu: "4"
+  limits.memory: 8Gi
+  requests.memory: 8Gi
+  requests.storage: 50Gi
+
+# LimitRange applied to every namespace.
+# Sized to allow 1-2 large pods — the default and max are intentionally high
+# so that containers without explicit resource specs still get useful limits
+# without artificially capping beefy workloads.
+ocp4_workload_tenant_namespace_default_limit_range:
+  default:
+    cpu: "2"
+    memory: 4Gi
+  defaultRequest:
+    cpu: 250m
+    memory: 128Mi
