@@ -6,6 +6,10 @@ ocp4_workload_tenant_devspaces_openshift_api_token: "{{ sandbox_openshift_api_to
 # User configuration
 ocp4_workload_tenant_devspaces_username: "user-{{ guid }}"
 
+# User password (should be provided from tenant_keycloak_user role)
+# If not provided, user info will indicate password comes from Keycloak
+ocp4_workload_tenant_devspaces_user_password: "Pwd{{ (guid | hash('sha256'))[:8] }}!"
+
 # Namespace (created by tenant_namespace role, passed as input)
 ocp4_workload_tenant_devspaces_namespace: "{{ ocp4_workload_tenant_devspaces_username }}-devworkspace"
 

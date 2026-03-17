@@ -3,18 +3,49 @@
 # Apply DevSpaces labels/annotations to namespace and create DevWorkspace
 # ==================================================================
 
-- name: Apply DevSpaces labels and annotations to namespace
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_devspaces_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_devspaces_openshift_api_token }}"
-    validate_certs: false
-    state: patched
-    definition: "{{ lookup('template', 'namespace.yml.j2') | from_yaml }}"
+- name: Setup DevSpaces for user
+  module_defaults:
+    group/kubernetes.core.k8s:
+      host: "{{ ocp4_workload_tenant_devspaces_openshift_api_url }}"
+      api_key: "{{ ocp4_workload_tenant_devspaces_openshift_api_token }}"
+      validate_certs: false
+  block:
+    - name: Apply DevSpaces labels and annotations to namespace
+      kubernetes.core.k8s:
+        state: patched
+        definition: "{{ lookup('template', 'namespace.yml.j2') | from_yaml }}"
 
-- name: Create DevWorkspace
-  kubernetes.core.k8s:
-    host: "{{ ocp4_workload_tenant_devspaces_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_devspaces_openshift_api_token }}"
-    validate_certs: false
-    state: present
-    definition: "{{ lookup('template', 'devworkspace.yml.j2') | from_yaml }}"
+    - name: Create DevWorkspace
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'devworkspace.yml.j2') | from_yaml }}"
+
+    # ==================================================================
+    # Get DevSpaces URL and save user info
+    # ==================================================================
+
+    - name: Get DevSpaces dashboard route
+      kubernetes.core.k8s_info:
+        api_version: route.openshift.io/v1
+        kind: Route
+        name: devspaces
+        namespace: openshift-devspaces
+      register: r_devspaces_route
+
+    - name: Set DevSpaces URL fact
+      ansible.builtin.set_fact:
+        _ocp4_workload_tenant_devspaces_url: "https://{{ r_devspaces_route.resources[0].spec.host }}"
+
+    - name: Save DevSpaces user information
+      agnosticd.core.agnosticd_user_info:
+        data:
+          devspaces_url: "{{ _ocp4_workload_tenant_devspaces_url }}"
+          devspaces_username: "{{ ocp4_workload_tenant_devspaces_username }}"
+          devspaces_password: "{{ ocp4_workload_tenant_devspaces_user_password }}"
+
+    - name: Save DevSpaces user data for display
+      agnosticd.core.agnosticd_user_data:
+        data: |
+          DevSpaces IDE is available at: {{ _ocp4_workload_tenant_devspaces_url }}
+          Username: {{ ocp4_workload_tenant_devspaces_username }}
+          Password: {{ ocp4_workload_tenant_devspaces_user_password }}
