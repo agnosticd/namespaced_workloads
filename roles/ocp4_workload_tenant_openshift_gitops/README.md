@@ -15,7 +15,7 @@ Ansible role to configure tenant-scoped access to an existing OpenShift GitOps (
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ocp4_workload_tenant_openshift_gitops_openshift_api_url` | OpenShift API URL | `{{ sandbox_openshift_api_url }}` |
-| `ocp4_workload_tenant_openshift_gitops_openshift_api_token` | Cluster admin API token | `{{ cluster_admin_agnosticd_sa_token \| trim }}` |
+| `ocp4_workload_tenant_openshift_gitops_openshift_api_token` | Cluster admin API token | `{{ sandbox_openshift_api_token \| trim }}` |
 | `ocp4_workload_tenant_openshift_gitops_user` | Username for ArgoCD access | `user-{{ guid }}` |
 | `ocp4_workload_tenant_openshift_gitops_user_password` | Password for ArgoCD login | `{{ common_password \| default('openshift') }}` |
 
