@@ -25,7 +25,7 @@
   - "sandbox_openshift_namespace:            {{ sandbox_openshift_namespace }}"
   - "sandbox_openshift_password:             {{ sandbox_openshift_password }}"
   - "sandbox_openshift_user:                 {{ sandbox_openshift_user }}"
-  - "cluster_admin_agnosticd_sa_token:       {{ cluster_admin_agnosticd_sa_token | default('Not available') }}"
+  - "sandbox_openshift_api_token:       {{ sandbox_openshift_api_token | default('Not available') }}"
 
 - name: Save AgnosticD user data
   agnosticd.core.agnosticd_user_info:
