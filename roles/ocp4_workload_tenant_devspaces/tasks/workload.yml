@@ -24,6 +24,11 @@
     # Get DevSpaces URL and save user info
     # ==================================================================
 
+    - name: Generate random password if not provided
+      when: ocp4_workload_tenant_devspaces_user_password | default('') | length == 0
+      ansible.builtin.set_fact:
+        ocp4_workload_tenant_devspaces_user_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits,punctuation length=16') }}"
+
     - name: Get DevSpaces dashboard route
       kubernetes.core.k8s_info:
         api_version: route.openshift.io/v1
