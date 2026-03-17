@@ -44,7 +44,7 @@
           devspaces_password: "{{ ocp4_workload_tenant_devspaces_user_password }}"
 
     - name: Save DevSpaces user data for display
-      agnosticd.core.agnosticd_user_data:
+      agnosticd.core.agnosticd_user_info:
         data: |
           DevSpaces IDE is available at: {{ _ocp4_workload_tenant_devspaces_url }}
           Username: {{ ocp4_workload_tenant_devspaces_username }}
