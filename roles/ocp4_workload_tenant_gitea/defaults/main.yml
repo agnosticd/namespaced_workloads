@@ -1,7 +1,7 @@
 ---
 # Cluster connection
 ocp4_workload_tenant_gitea_openshift_api_url: "{{ sandbox_openshift_api_url }}"
-ocp4_workload_tenant_gitea_openshift_api_token: "{{ sandbox_openshift_api_token | trim }}"
+ocp4_workload_tenant_gitea_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
 # Namespace where the per-user Gitea instance is deployed
 ocp4_workload_tenant_gitea_namespace: gitea

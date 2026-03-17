@@ -1,7 +1,7 @@
 ---
 # Cluster connection
 ocp4_workload_tenant_namespace_openshift_api_url: "{{ sandbox_openshift_api_url }}"
-ocp4_workload_tenant_namespace_openshift_api_token: "{{ sandbox_openshift_api_token | trim }}"
+ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
 # User granted access to each namespace and used as the namespace name/prefix.
 ocp4_workload_tenant_namespace_username: "user-{{ guid }}"
