@@ -50,7 +50,7 @@ The role uses `ACTION` variable (set automatically by AgnosticD): `provision` ru
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `_openshift_api_url` | `{{ sandbox_openshift_api_url }}` | Cluster API URL (from sandbox) |
-| `_openshift_api_token` | `{{ sandbox_openshift_api_token }}` | SA token (from sandbox) |
+| `_openshift_api_token` | `{{ cluster_admin_agnosticd_sa_token }}` | SA token (from sandbox) |
 | `_username` | `user-{{ guid }}` | Username to create |
 | `_password` | (required) | Password for the user |
 | `_keycloak_namespace` | `keycloak` | Namespace where RHBK is deployed |
@@ -72,4 +72,4 @@ Removes: Keycloak user, OCP Identity, OCP User object, per-user namespaces, Clus
 ## Prerequisites
 
 - Cluster must have RHBK (Keycloak) deployed via `ocp4_workload_authentication_keycloak`
-- `sandbox_openshift_api_token` and `sandbox_openshift_api_url` provided by sandbox
+- `cluster_admin_agnosticd_sa_token` and `sandbox_openshift_api_url` provided by sandbox
