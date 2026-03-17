@@ -6,6 +6,9 @@ ocp4_workload_tenant_devspaces_openshift_api_token: "{{ cluster_admin_agnosticd_
 # User configuration
 ocp4_workload_tenant_devspaces_username: "user-{{ guid }}"
 
+# User password (will be overridden if provided from tenant_keycloak_user role)
+ocp4_workload_tenant_devspaces_user_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits,punctuation length=16') }}"
+
 # Namespace (created by tenant_namespace role, passed as input)
 ocp4_workload_tenant_devspaces_namespace: "{{ ocp4_workload_tenant_devspaces_username }}-devworkspace"
 
