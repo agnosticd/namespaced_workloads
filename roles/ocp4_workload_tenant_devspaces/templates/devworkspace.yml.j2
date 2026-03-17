@@ -24,4 +24,7 @@ spec:
           revision: {{ project.git_revision | default('main') }}
 {% endfor %}
 {% endif %}
+{% if ocp4_workload_tenant_devspaces_devworkspace_devfile_variables | default({}) | length > 0 %}
+    variables: {{ ocp4_workload_tenant_devspaces_devworkspace_devfile_variables | to_yaml }}
+{% endif %}
     components: {{ ocp4_workload_tenant_devspaces_devworkspace_components | to_json }}
