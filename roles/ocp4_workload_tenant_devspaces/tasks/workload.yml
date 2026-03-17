@@ -42,10 +42,3 @@
           devspaces_url: "{{ _ocp4_workload_tenant_devspaces_url }}"
           devspaces_username: "{{ ocp4_workload_tenant_devspaces_username }}"
           devspaces_password: "{{ ocp4_workload_tenant_devspaces_user_password }}"
-
-    - name: Save DevSpaces user data for display
-      agnosticd.core.agnosticd_user_info:
-        data: |
-          DevSpaces IDE is available at: {{ _ocp4_workload_tenant_devspaces_url }}
-          Username: {{ ocp4_workload_tenant_devspaces_username }}
-          Password: {{ ocp4_workload_tenant_devspaces_user_password | default('[Password from Keycloak]') }}
