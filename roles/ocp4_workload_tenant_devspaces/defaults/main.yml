@@ -42,11 +42,16 @@ ocp4_workload_tenant_devspaces_devworkspace_components:
   container:
     image: registry.redhat.io/devspaces/udi-rhel8:latest
 
-# DevWorkspace devfile variables (optional - leave undefined for no variables)
-# These variables are passed to the IDE contribution and can be used in the devfile
+# IDE contribution component configuration (optional - leave undefined for no IDE component override)
+# This allows you to override the IDE container with custom image and environment variables
 # Example:
-# ocp4_workload_tenant_devspaces_devworkspace_devfile_variables:
-#   GITEA_HOST: "gitea.{{ ocp4_workload_tenant_devspaces_username }}-gitea.svc.cluster.local:3000"
-#   GIT_ORG: "{{ ocp4_workload_tenant_devspaces_username }}"
-#   GIT_REPO: kai-coolstore
-# ocp4_workload_tenant_devspaces_devworkspace_devfile_variables: {}
+# ocp4_workload_tenant_devspaces_ide_component:
+#   name: kai-dev-container
+#   image: quay.io/dbrugger946/dls-devspaces:latest
+#   memoryLimit: 8Gi
+#   mountSources: true
+#   env:
+#     GITEA_HOST: "gitea.{{ ocp4_workload_tenant_devspaces_username }}-gitea.svc.cluster.local:3000"
+#     GIT_ORG: "{{ ocp4_workload_tenant_devspaces_username }}"
+#     GIT_REPO: kai-coolstore
+# ocp4_workload_tenant_devspaces_ide_component: {}
