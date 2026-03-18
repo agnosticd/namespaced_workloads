@@ -12,14 +12,18 @@ spec:
   contributions:
   - name: ide
     uri: {{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}
-{% if ocp4_workload_tenant_devspaces_devworkspace_env_vars | default({}) | length > 0 %}
+{% if ocp4_workload_tenant_devspaces_ide_components | default([]) | length > 0 %}
     components:
-    - name: {{ ocp4_workload_tenant_devspaces_ide_component_name }}
+{% for component in ocp4_workload_tenant_devspaces_ide_components %}
+    - name: {{ component.name }}
       container:
+{% if component.env | default([]) | length > 0 %}
         env:
-{% for env_name, env_value in ocp4_workload_tenant_devspaces_devworkspace_env_vars.items() %}
-        - name: {{ env_name }}
-          value: {{ env_value }}
+{% for env_var in component.env %}
+        - name: {{ env_var.name }}
+          value: {{ env_var.value }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 {% endif %}
   template:

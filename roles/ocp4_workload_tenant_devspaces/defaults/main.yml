@@ -42,14 +42,20 @@ ocp4_workload_tenant_devspaces_devworkspace_components:
   container:
     image: registry.redhat.io/devspaces/udi-rhel8:latest
 
-# IDE contribution component name (used when env vars are defined)
-ocp4_workload_tenant_devspaces_ide_component_name: "{{ ocp4_workload_tenant_devspaces_username }}-dev-container"
-
-# IDE contribution environment variables (optional - leave undefined for no env vars)
-# These environment variables are injected into the IDE container component
+# IDE contribution components (optional - leave empty array for no custom components)
+# Each component can have a name and environment variables
 # Example:
-# ocp4_workload_tenant_devspaces_devworkspace_env_vars:
-#   GITEA_HOST: "gitea.{{ ocp4_workload_tenant_devspaces_username }}-gitea.svc.cluster.local:3000"
-#   GIT_ORG: "{{ ocp4_workload_tenant_devspaces_username }}"
-#   GIT_REPO: kai-coolstore
-# ocp4_workload_tenant_devspaces_devworkspace_env_vars: {}
+# ocp4_workload_tenant_devspaces_ide_components:
+#   - name: kai-dev-container
+#     env:
+#       - name: GITEA_HOST
+#         value: "gitea.{{ ocp4_workload_tenant_devspaces_username }}-gitea.svc.cluster.local:3000"
+#       - name: GIT_ORG
+#         value: "{{ ocp4_workload_tenant_devspaces_username }}"
+#       - name: GIT_REPO
+#         value: kai-coolstore
+#   - name: another-container
+#     env:
+#       - name: FOO
+#         value: bar
+ocp4_workload_tenant_devspaces_ide_components: []
