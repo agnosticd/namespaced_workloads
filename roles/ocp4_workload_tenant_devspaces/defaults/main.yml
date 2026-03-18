@@ -19,23 +19,6 @@ ocp4_workload_tenant_devspaces_devworkspace_name: "{{ ocp4_workload_tenant_devsp
 ocp4_workload_tenant_devspaces_devworkspace_devfile: >-
   http://devspaces-dashboard.openshift-devspaces.svc.cluster.local:8080/dashboard/api/editors/devfile?che-editor=che-incubator/che-code/latest
 
-# Projects to clone into the devworkspace (list - leave empty for no projects)
-# Each project must specify: name, git_repo, git_repo_base, and optionally git_revision
-# The full git URL is constructed as: {git_repo_base}/{username}/{git_repo}.git
-# Example:
-# ocp4_workload_tenant_devspaces_devworkspace_projects:
-# - name: modern-app-dev
-#   git_repo: modern-app-dev
-#   git_repo_base: http://gitea.gitea.svc:3000
-#   git_revision: main
-#   # Constructs: http://gitea.gitea.svc:3000/user-{guid}/modern-app-dev.git
-# - name: external-lib
-#   git_repo: myorg/some-library
-#   git_repo_base: https://github.com
-#   git_revision: v1.0
-#   # Constructs: https://github.com/user-{guid}/myorg/some-library.git
-ocp4_workload_tenant_devspaces_devworkspace_projects: []
-
 # DevWorkspace components
 ocp4_workload_tenant_devspaces_devworkspace_components:
 - name: tooling
