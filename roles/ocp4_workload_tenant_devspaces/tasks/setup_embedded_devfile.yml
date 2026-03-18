@@ -72,8 +72,8 @@
     validate_certs: false
     status_code: [200]
   register: r_devfile_content
-  retries: 3
-  delay: 5
+  retries: 12
+  delay: 10
   until: r_devfile_content.status == 200
 
 - name: Parse devfile YAML content
