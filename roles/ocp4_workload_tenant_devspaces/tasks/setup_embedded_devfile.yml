@@ -61,19 +61,19 @@
 - name: Validate devfile URL is provided
   ansible.builtin.assert:
     that:
-      - ocp4_workload_tenant_devspaces_devfile_url | length > 0
-    fail_msg: "ocp4_workload_tenant_devspaces_devfile_url must be set when use_embedded_devfile is true"
+      - ocp4_workload_tenant_devspaces_devworkspace_devfile | length > 0
+    fail_msg: "ocp4_workload_tenant_devspaces_devworkspace_devfile must be set when use_embedded_devfile is true"
 
 - name: Fetch devfile from URL
   ansible.builtin.uri:
-    url: "{{ ocp4_workload_tenant_devspaces_devfile_url }}"
+    url: "{{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}"
     method: GET
     return_content: true
     validate_certs: false
     status_code: [200]
   register: r_devfile_content
-  retries: 12
-  delay: 10
+  retries: 3
+  delay: 5
   until: r_devfile_content.status == 200
 
 - name: Parse devfile YAML content

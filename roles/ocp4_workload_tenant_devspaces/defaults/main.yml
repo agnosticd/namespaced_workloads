@@ -16,6 +16,9 @@ ocp4_workload_tenant_devspaces_namespace: "{{ ocp4_workload_tenant_devspaces_use
 ocp4_workload_tenant_devspaces_devworkspace_name: "{{ ocp4_workload_tenant_devspaces_username }}-workspace"
 
 # DevWorkspace devfile URL
+# - URI mode (use_embedded_devfile: false): Points to DevSpaces dashboard API for editor
+# - Embedded mode (use_embedded_devfile: true): Points to Git repository devfile
+# Example for embedded: http://gitea.gitea.svc:3000/user/repo/raw/branch/main/devfile.yaml
 ocp4_workload_tenant_devspaces_devworkspace_devfile: >-
   http://devspaces-dashboard.openshift-devspaces.svc.cluster.local:8080/dashboard/api/editors/devfile?che-editor=che-incubator/che-code/latest
 
@@ -48,10 +51,6 @@ ocp4_workload_tenant_devspaces_devworkspace_components:
 
 # Enable embedded devfile mode (creates DevWorkspaceTemplate + embeds devfile content)
 ocp4_workload_tenant_devspaces_use_embedded_devfile: false
-
-# URL to fetch devfile from (when embedded mode is enabled)
-# Example: https://gitea.example.com/user/repo/raw/branch/main/devfile.yaml
-ocp4_workload_tenant_devspaces_devfile_url: ""
 
 # DevWorkspaceTemplate name (for generic VS Code editor)
 ocp4_workload_tenant_devspaces_devworkspace_template_name: "che-code-{{ ocp4_workload_tenant_devspaces_username }}"
