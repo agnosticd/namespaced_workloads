@@ -40,30 +40,13 @@
         namespace: openshift-devspaces
       register: r_devspaces_route
 
-    - name: Set DevSpaces URL fact
+    - name: Set DevSpaces dashboard URL
       ansible.builtin.set_fact:
-        _ocp4_workload_tenant_devspaces_url: "https://{{ r_devspaces_route.resources[0].spec.host }}"
-
-    - name: Get DevWorkspace to retrieve workspace URL
-      kubernetes.core.k8s_info:
-        api_version: workspace.devfile.io/v1alpha2
-        kind: DevWorkspace
-        name: "{{ ocp4_workload_tenant_devspaces_devworkspace_name }}"
-        namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
-      register: r_devworkspace
-      retries: 10
-      delay: 5
-      until:
-        - r_devworkspace.resources | length > 0
-        - r_devworkspace.resources[0].status.mainUrl is defined
-
-    - name: Set DevWorkspace dashboard URL
-      ansible.builtin.set_fact:
-        _ocp4_workload_tenant_devspaces_dashboard_workspace_url: "{{ _ocp4_workload_tenant_devspaces_url }}/{{ ocp4_workload_tenant_devspaces_username }}/{{ ocp4_workload_tenant_devspaces_devworkspace_name }}"
+        _ocp4_workload_tenant_devspaces_dashboard_url: "https://{{ r_devspaces_route.resources[0].spec.host }}"
 
     - name: Save DevSpaces user information
       agnosticd.core.agnosticd_user_info:
         data:
-          devspaces_url: "{{ _ocp4_workload_tenant_devspaces_dashboard_workspace_url }}"
+          devspaces_url: "{{ _ocp4_workload_tenant_devspaces_dashboard_url }}"
           devspaces_username: "{{ ocp4_workload_tenant_devspaces_username }}"
           devspaces_password: "{{ ocp4_workload_tenant_devspaces_user_password }}"
