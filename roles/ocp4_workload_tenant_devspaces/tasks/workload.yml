@@ -15,6 +15,14 @@
         state: patched
         definition: "{{ lookup('template', 'namespace.yml.j2') | from_yaml }}"
 
+    # ==================================================================
+    # Setup embedded devfile mode (if enabled)
+    # ==================================================================
+
+    - name: Setup embedded devfile and create DevWorkspaceTemplate
+      ansible.builtin.include_tasks: setup_embedded_devfile.yml
+      when: ocp4_workload_tenant_devspaces_use_embedded_devfile | bool
+
     - name: Create DevWorkspace
       kubernetes.core.k8s:
         state: present
