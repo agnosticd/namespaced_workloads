@@ -3,6 +3,7 @@
 # Setup Embedded Devfile Mode
 # ==================================================================
 # This task file handles:
+# - Creating Secret with environment variables (auto-mounted to workspace)
 # - Auto-detecting cluster URLs (dashboard, plugin registry, console)
 # - Fetching devfile from URL
 # - Stripping schemaVersion and metadata (not needed in template section)
@@ -52,10 +53,10 @@
       - "Plugin Registry Internal URL: {{ _devspaces_plugin_registry_internal_url }}"
       - "Console URL: {{ _devspaces_cluster_console_url }}"
 
-- name: Create ConfigMap with environment variables (auto-mounted to DevWorkspace)
+- name: Create Secret with environment variables (auto-mounted to DevWorkspace)
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('template', 'configmap-env.yml.j2') | from_yaml }}"
+    definition: "{{ lookup('template', 'secret-env.yml.j2') | from_yaml }}"
   when: ocp4_workload_tenant_devspaces_devfile_env_vars | length > 0
 
 - name: Validate devfile URL is provided

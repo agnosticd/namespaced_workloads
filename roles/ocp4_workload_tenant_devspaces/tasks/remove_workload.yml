@@ -24,11 +24,11 @@
         namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
       ignore_errors: true
 
-    - name: Delete environment variables ConfigMap (if exists)
+    - name: Delete environment variables Secret (if exists)
       kubernetes.core.k8s:
         state: absent
         api_version: v1
-        kind: ConfigMap
+        kind: Secret
         name: devworkspace-env
         namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
       ignore_errors: true
