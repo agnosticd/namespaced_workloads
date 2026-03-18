@@ -42,6 +42,9 @@ ocp4_workload_tenant_devspaces_devworkspace_components:
   container:
     image: registry.redhat.io/devspaces/udi-rhel8:latest
 
+# IDE contribution component name (used when env vars are defined)
+ocp4_workload_tenant_devspaces_ide_component_name: "{{ ocp4_workload_tenant_devspaces_username }}-dev-container"
+
 # IDE contribution environment variables (optional - leave undefined for no env vars)
 # These environment variables are injected into the IDE container component
 # Example:
