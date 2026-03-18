@@ -6,6 +6,8 @@ metadata:
   namespace: {{ ocp4_workload_tenant_devspaces_namespace }}
   labels:
     created-by: agnosticd
+  annotations:
+    che.eclipse.org/che-editor: che-incubator/che-code/latest
 spec:
   routingClass: che
   started: true
