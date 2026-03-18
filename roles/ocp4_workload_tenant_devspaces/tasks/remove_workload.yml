@@ -15,22 +15,20 @@
         namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
       ignore_errors: true
 
-    - name: Delete DevWorkspaceTemplate (if embedded mode was used)
+    - name: Delete DevWorkspaceTemplate (if exists)
       kubernetes.core.k8s:
         state: absent
         api_version: workspace.devfile.io/v1alpha2
         kind: DevWorkspaceTemplate
         name: "{{ ocp4_workload_tenant_devspaces_devworkspace_template_name }}"
         namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
-      when: ocp4_workload_tenant_devspaces_use_embedded_devfile | bool
       ignore_errors: true
 
-    - name: Delete environment variables ConfigMap (if embedded mode was used)
+    - name: Delete environment variables ConfigMap (if exists)
       kubernetes.core.k8s:
         state: absent
         api_version: v1
         kind: ConfigMap
         name: "{{ ocp4_workload_tenant_devspaces_username }}-devworkspace-env"
         namespace: "{{ ocp4_workload_tenant_devspaces_namespace }}"
-      when: ocp4_workload_tenant_devspaces_use_embedded_devfile | bool
       ignore_errors: true
