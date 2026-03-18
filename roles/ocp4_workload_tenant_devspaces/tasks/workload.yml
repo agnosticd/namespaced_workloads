@@ -57,9 +57,8 @@
         - r_devworkspace.resources | length > 0
         - r_devworkspace.resources[0].status.mainUrl is defined
 
-    - name: Set DevWorkspace URLs
+    - name: Set DevWorkspace dashboard URL
       ansible.builtin.set_fact:
-        _ocp4_workload_tenant_devspaces_workspace_url: "{{ r_devworkspace.resources[0].status.mainUrl }}"
         _ocp4_workload_tenant_devspaces_dashboard_workspace_url: "{{ _ocp4_workload_tenant_devspaces_url }}/{{ ocp4_workload_tenant_devspaces_username }}/{{ ocp4_workload_tenant_devspaces_devworkspace_name }}"
 
     - name: Save DevSpaces user information
