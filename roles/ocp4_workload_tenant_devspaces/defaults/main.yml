@@ -56,13 +56,7 @@ ocp4_workload_tenant_devspaces_devfile_url: ""
 # DevWorkspaceTemplate name (for generic VS Code editor)
 ocp4_workload_tenant_devspaces_devworkspace_template_name: "che-code-{{ ocp4_workload_tenant_devspaces_username }}"
 
-# DevSpaces cluster URLs (auto-detected if not set)
-ocp4_workload_tenant_devspaces_dashboard_url: ""
-ocp4_workload_tenant_devspaces_plugin_registry_url: ""
-ocp4_workload_tenant_devspaces_plugin_registry_internal_url: ""
-ocp4_workload_tenant_devspaces_cluster_console_url: ""
-
-# VS Code editor image (used when embedded devfile is enabled)
+# VS Code editor images (used when embedded devfile is enabled)
 ocp4_workload_tenant_devspaces_che_code_image: "registry.redhat.io/devspaces/code-rhel9@sha256:5cd4fe568b4352bc5ef6ec0b16c3235fe515c2afb86fb076ed435cea65ea2247"
 ocp4_workload_tenant_devspaces_udi_image: "registry.redhat.io/devspaces/udi-rhel9@sha256:024712461154d505de3180f4459363c46bc5d0fe7465d7e270108540ce8902fe"
 

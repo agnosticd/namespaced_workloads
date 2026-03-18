@@ -36,20 +36,13 @@
 
 - name: Set auto-detected URLs
   ansible.builtin.set_fact:
-    _devspaces_dashboard_url: >-
-      {{ ocp4_workload_tenant_devspaces_dashboard_url
-         | default('https://' + r_dashboard_route.resources[0].spec.host) }}
+    _devspaces_dashboard_url: "https://{{ r_dashboard_route.resources[0].spec.host }}"
     _devspaces_plugin_registry_url: >-
-      {{ ocp4_workload_tenant_devspaces_plugin_registry_url
-         | default('https://' + r_plugin_registry_route.resources[0].spec.host + '/v3'
-                   if r_plugin_registry_route.resources | length > 0
-                   else 'https://' + r_dashboard_route.resources[0].spec.host.replace('devspaces', 'plugin-registry') + '/v3') }}
-    _devspaces_plugin_registry_internal_url: >-
-      {{ ocp4_workload_tenant_devspaces_plugin_registry_internal_url
-         | default('http://plugin-registry.openshift-devspaces.svc:8080/v3') }}
-    _devspaces_cluster_console_url: >-
-      {{ ocp4_workload_tenant_devspaces_cluster_console_url
-         | default('https://' + r_console_route.resources[0].spec.host) }}
+      {{ 'https://' + r_plugin_registry_route.resources[0].spec.host + '/v3'
+         if r_plugin_registry_route.resources | length > 0
+         else 'https://' + r_dashboard_route.resources[0].spec.host.replace('devspaces', 'plugin-registry') + '/v3' }}
+    _devspaces_plugin_registry_internal_url: "http://plugin-registry.openshift-devspaces.svc:8080/v3"
+    _devspaces_cluster_console_url: "https://{{ r_console_route.resources[0].spec.host }}"
 
 - name: Display auto-detected URLs
   ansible.builtin.debug:
