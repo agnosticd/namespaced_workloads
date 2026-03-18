@@ -1,0 +1,103 @@
+---
+# ==================================================================
+# Setup Embedded Devfile Mode
+# ==================================================================
+# This task file handles:
+# - Creating Secret with environment variables (auto-mounted to workspace)
+# - Auto-detecting cluster URLs (dashboard, plugin registry, console)
+# - Fetching devfile from URL
+# - Stripping schemaVersion and metadata (not needed in template section)
+# - Creating DevWorkspaceTemplate for VS Code editor
+# ==================================================================
+
+- name: Get DevSpaces dashboard route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: devspaces
+    namespace: openshift-devspaces
+  register: r_dashboard_route
+
+- name: Get DevSpaces plugin-registry route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: plugin-registry
+    namespace: openshift-devspaces
+  register: r_plugin_registry_route
+  failed_when: false
+
+- name: Get OpenShift console route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: console
+    namespace: openshift-console
+  register: r_console_route
+
+- name: Set auto-detected URLs
+  ansible.builtin.set_fact:
+    _devspaces_dashboard_url: "https://{{ r_dashboard_route.resources[0].spec.host }}"
+    _devspaces_plugin_registry_url: >-
+      {{ 'https://' + r_plugin_registry_route.resources[0].spec.host + '/v3'
+         if r_plugin_registry_route.resources | length > 0
+         else 'https://' + r_dashboard_route.resources[0].spec.host.replace('devspaces', 'plugin-registry') + '/v3' }}
+    _devspaces_plugin_registry_internal_url: "http://plugin-registry.openshift-devspaces.svc:8080/v3"
+    _devspaces_cluster_console_url: "https://{{ r_console_route.resources[0].spec.host }}"
+
+- name: Display auto-detected URLs
+  ansible.builtin.debug:
+    msg:
+      - "Dashboard URL: {{ _devspaces_dashboard_url }}"
+      - "Plugin Registry URL: {{ _devspaces_plugin_registry_url }}"
+      - "Plugin Registry Internal URL: {{ _devspaces_plugin_registry_internal_url }}"
+      - "Console URL: {{ _devspaces_cluster_console_url }}"
+
+- name: Create Secret with environment variables (auto-mounted to DevWorkspace)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'secret-env.yml.j2') | from_yaml }}"
+  when: ocp4_workload_tenant_devspaces_devfile_env_vars | length > 0
+
+- name: Validate devfile URL is provided
+  ansible.builtin.assert:
+    that:
+      - ocp4_workload_tenant_devspaces_devworkspace_devfile | length > 0
+    fail_msg: "ocp4_workload_tenant_devspaces_devworkspace_devfile must be set when use_embedded_devfile is true"
+
+- name: Fetch devfile from URL
+  ansible.builtin.uri:
+    url: "{{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}"
+    method: GET
+    return_content: true
+    validate_certs: false
+    status_code: [200]
+  register: r_devfile_content
+  retries: 3
+  delay: 5
+  until: r_devfile_content.status == 200
+
+- name: Parse devfile YAML content
+  ansible.builtin.set_fact:
+    _devfile_parsed: "{{ r_devfile_content.content | from_yaml }}"
+
+- name: Validate devfile structure
+  ansible.builtin.assert:
+    that:
+      - _devfile_parsed.schemaVersion is defined
+      - _devfile_parsed.metadata is defined
+    fail_msg: "Fetched content is not a valid devfile"
+
+- name: Prepare devfile for template section (strip metadata/schemaVersion only)
+  ansible.builtin.set_fact:
+    _devfile_template_content: >-
+      {{
+        _devfile_parsed | dict2items
+        | rejectattr('key', 'in', ['schemaVersion', 'metadata'])
+        | items2dict
+      }}
+
+- name: Create DevWorkspaceTemplate for VS Code editor
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'devworkspace-template.yml.j2') | from_yaml }}"

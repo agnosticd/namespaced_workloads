@@ -15,6 +15,14 @@
         state: patched
         definition: "{{ lookup('template', 'namespace.yml.j2') | from_yaml }}"
 
+    # ==================================================================
+    # Setup embedded devfile mode (if enabled)
+    # ==================================================================
+
+    - name: Setup embedded devfile and create DevWorkspaceTemplate
+      ansible.builtin.include_tasks: setup_embedded_devfile.yml
+      when: ocp4_workload_tenant_devspaces_use_embedded_devfile | bool
+
     - name: Create DevWorkspace
       kubernetes.core.k8s:
         state: present
@@ -32,13 +40,13 @@
         namespace: openshift-devspaces
       register: r_devspaces_route
 
-    - name: Set DevSpaces URL fact
+    - name: Set DevSpaces dashboard URL
       ansible.builtin.set_fact:
-        _ocp4_workload_tenant_devspaces_url: "https://{{ r_devspaces_route.resources[0].spec.host }}"
+        _ocp4_workload_tenant_devspaces_dashboard_url: "https://{{ r_devspaces_route.resources[0].spec.host }}"
 
     - name: Save DevSpaces user information
       agnosticd.core.agnosticd_user_info:
         data:
-          devspaces_url: "{{ _ocp4_workload_tenant_devspaces_url }}"
+          devspaces_url: "{{ _ocp4_workload_tenant_devspaces_dashboard_url }}"
           devspaces_username: "{{ ocp4_workload_tenant_devspaces_username }}"
           devspaces_password: "{{ ocp4_workload_tenant_devspaces_user_password }}"

@@ -16,6 +16,9 @@ ocp4_workload_tenant_devspaces_namespace: "{{ ocp4_workload_tenant_devspaces_use
 ocp4_workload_tenant_devspaces_devworkspace_name: "{{ ocp4_workload_tenant_devspaces_username }}-workspace"
 
 # DevWorkspace devfile URL
+# - URI mode (use_embedded_devfile: false): Points to DevSpaces dashboard API for editor
+# - Embedded mode (use_embedded_devfile: true): Points to Git repository devfile
+# Example for embedded: http://gitea.gitea.svc:3000/user/repo/raw/branch/main/devfile.yaml
 ocp4_workload_tenant_devspaces_devworkspace_devfile: >-
   http://devspaces-dashboard.openshift-devspaces.svc.cluster.local:8080/dashboard/api/editors/devfile?che-editor=che-incubator/che-code/latest
 
@@ -41,3 +44,27 @@ ocp4_workload_tenant_devspaces_devworkspace_components:
 - name: tooling
   container:
     image: registry.redhat.io/devspaces/udi-rhel8:latest
+
+# ==================================================================
+# Embedded Devfile Configuration
+# ==================================================================
+
+# Enable embedded devfile mode (creates DevWorkspaceTemplate + embeds devfile content)
+ocp4_workload_tenant_devspaces_use_embedded_devfile: false
+
+# DevWorkspaceTemplate name (for generic VS Code editor)
+ocp4_workload_tenant_devspaces_devworkspace_template_name: "che-code-{{ ocp4_workload_tenant_devspaces_username }}"
+
+# VS Code editor images (used when embedded devfile is enabled)
+ocp4_workload_tenant_devspaces_che_code_image: "registry.redhat.io/devspaces/code-rhel9@sha256:5cd4fe568b4352bc5ef6ec0b16c3235fe515c2afb86fb076ed435cea65ea2247"
+ocp4_workload_tenant_devspaces_udi_image: "registry.redhat.io/devspaces/udi-rhel9@sha256:024712461154d505de3180f4459363c46bc5d0fe7465d7e270108540ce8902fe"
+
+# Environment variables to inject into devfile containers (when embedded mode is enabled)
+# Example:
+# ocp4_workload_tenant_devspaces_devfile_env_vars:
+# - name: GIT_USERNAME
+#   value: "{{ ocp4_workload_tenant_devspaces_username }}"
+ocp4_workload_tenant_devspaces_devfile_env_vars: []
+
+# SCC attribute for container builds
+ocp4_workload_tenant_devspaces_scc: "container-build"

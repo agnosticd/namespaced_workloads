@@ -6,12 +6,35 @@ metadata:
   namespace: {{ ocp4_workload_tenant_devspaces_namespace }}
   labels:
     created-by: agnosticd
+    student-name: {{ ocp4_workload_tenant_devspaces_username }}
 spec:
   routingClass: che
   started: true
+
+{% if ocp4_workload_tenant_devspaces_use_embedded_devfile | bool %}
+  # Embedded devfile mode: Reference DevWorkspaceTemplate for editor
+  contributions:
+  - name: editor
+    kubernetes:
+      name: {{ ocp4_workload_tenant_devspaces_devworkspace_template_name }}
+
+  template:
+    attributes:
+      controller.devfile.io/devworkspace-config:
+        name: devworkspace-config
+        namespace: openshift-devspaces
+      controller.devfile.io/scc: {{ ocp4_workload_tenant_devspaces_scc }}
+      controller.devfile.io/storage-type: per-user
+
+    # Embedded devfile content (stripped of schemaVersion and metadata, with env vars injected)
+{{ _devfile_template_content | to_nice_yaml(indent=2) | indent(4, first=True) }}
+
+{% else %}
+  # URI-based mode (backward compatible): Reference external devfile
   contributions:
   - name: ide
     uri: {{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}
+
   template:
 {% if ocp4_workload_tenant_devspaces_devworkspace_projects | default([]) | length > 0 %}
     projects:
@@ -25,3 +48,4 @@ spec:
 {% endfor %}
 {% endif %}
     components: {{ ocp4_workload_tenant_devspaces_devworkspace_components | to_json }}
+{% endif %}

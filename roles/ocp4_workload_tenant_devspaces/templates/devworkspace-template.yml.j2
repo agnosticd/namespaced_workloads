@@ -1,0 +1,120 @@
+---
+apiVersion: workspace.devfile.io/v1alpha2
+kind: DevWorkspaceTemplate
+metadata:
+  name: {{ ocp4_workload_tenant_devspaces_devworkspace_template_name }}
+  namespace: {{ ocp4_workload_tenant_devspaces_namespace }}
+  annotations:
+    che.eclipse.org/components-update-policy: managed
+  labels:
+    created-by: agnosticd
+spec:
+  commands:
+  - apply:
+      component: che-code-injector
+    id: init-container-command
+  - exec:
+      commandLine: nohup /checode/entrypoint-volume.sh > /checode/entrypoint-logs.txt 2>&1 &
+      component: che-code-runtime-description
+    id: init-che-code-command
+
+  components:
+  # Che Code Injector - Initialization container
+  - container:
+      command:
+      - /entrypoint-init-container.sh
+      cpuLimit: 500m
+      cpuRequest: 30m
+      env:
+      - name: CHE_DASHBOARD_URL
+        value: {{ _devspaces_dashboard_url }}
+      - name: CHE_PLUGIN_REGISTRY_URL
+        value: {{ _devspaces_plugin_registry_url }}
+      - name: CHE_PLUGIN_REGISTRY_INTERNAL_URL
+        value: {{ _devspaces_plugin_registry_internal_url }}
+      - name: CLUSTER_CONSOLE_URL
+        value: {{ _devspaces_cluster_console_url }}
+      - name: CLUSTER_CONSOLE_TITLE
+        value: OpenShift console
+      - name: OPENVSX_REGISTRY_URL
+        value: ""
+      image: {{ ocp4_workload_tenant_devspaces_che_code_image }}
+      memoryLimit: 256Mi
+      memoryRequest: 32Mi
+      sourceMapping: /projects
+      volumeMounts:
+      - name: checode
+        path: /checode
+    name: che-code-injector
+
+  # Che Code Runtime - Main VS Code editor
+  - attributes:
+      app.kubernetes.io/component: che-code-runtime
+      app.kubernetes.io/part-of: che-code.eclipse.org
+      controller.devfile.io/container-contribution: true
+    container:
+      cpuLimit: 500m
+      cpuRequest: 30m
+      endpoints:
+      - attributes:
+          cookiesAuthEnabled: true
+          discoverable: false
+          type: main
+          urlRewriteSupported: true
+        exposure: public
+        name: che-code
+        protocol: https
+        secure: true
+        targetPort: 3100
+      - attributes:
+          discoverable: false
+          urlRewriteSupported: false
+        exposure: public
+        name: code-redirect-1
+        protocol: https
+        targetPort: 13131
+      - attributes:
+          discoverable: false
+          urlRewriteSupported: false
+        exposure: public
+        name: code-redirect-2
+        protocol: https
+        targetPort: 13132
+      - attributes:
+          discoverable: false
+          urlRewriteSupported: false
+        exposure: public
+        name: code-redirect-3
+        protocol: https
+        targetPort: 13133
+      env:
+      - name: CHE_DASHBOARD_URL
+        value: {{ _devspaces_dashboard_url }}
+      - name: CHE_PLUGIN_REGISTRY_URL
+        value: {{ _devspaces_plugin_registry_url }}
+      - name: CHE_PLUGIN_REGISTRY_INTERNAL_URL
+        value: {{ _devspaces_plugin_registry_internal_url }}
+      - name: CLUSTER_CONSOLE_URL
+        value: {{ _devspaces_cluster_console_url }}
+      - name: CLUSTER_CONSOLE_TITLE
+        value: OpenShift console
+      - name: OPENVSX_REGISTRY_URL
+        value: ""
+      image: {{ ocp4_workload_tenant_devspaces_udi_image }}
+      memoryLimit: 1024Mi
+      memoryRequest: 256Mi
+      sourceMapping: /projects
+      volumeMounts:
+      - name: checode
+        path: /checode
+    name: che-code-runtime-description
+
+  # Shared volume for VS Code
+  - name: checode
+    volume: {}
+
+  events:
+    postStart:
+    - init-che-code-command
+    preStart:
+    - init-container-command
