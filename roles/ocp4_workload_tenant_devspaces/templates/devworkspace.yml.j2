@@ -12,24 +12,14 @@ spec:
   contributions:
   - name: ide
     uri: {{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}
-{% if ocp4_workload_tenant_devspaces_ide_component | default({}) | length > 0 %}
+{% if ocp4_workload_tenant_devspaces_devworkspace_env_vars | default({}) | length > 0 %}
     components:
-    - name: {{ ocp4_workload_tenant_devspaces_ide_component.name }}
-      container:
-        image: {{ ocp4_workload_tenant_devspaces_ide_component.image }}
-{% if ocp4_workload_tenant_devspaces_ide_component.memoryLimit is defined %}
-        memoryLimit: {{ ocp4_workload_tenant_devspaces_ide_component.memoryLimit }}
-{% endif %}
-{% if ocp4_workload_tenant_devspaces_ide_component.mountSources is defined %}
-        mountSources: {{ ocp4_workload_tenant_devspaces_ide_component.mountSources | lower }}
-{% endif %}
-{% if ocp4_workload_tenant_devspaces_ide_component.env | default({}) | length > 0 %}
+    - container:
         env:
-{% for env_name, env_value in ocp4_workload_tenant_devspaces_ide_component.env.items() %}
+{% for env_name, env_value in ocp4_workload_tenant_devspaces_devworkspace_env_vars.items() %}
         - name: {{ env_name }}
           value: {{ env_value }}
 {% endfor %}
-{% endif %}
 {% endif %}
   template:
 {% if ocp4_workload_tenant_devspaces_devworkspace_projects | default([]) | length > 0 %}
