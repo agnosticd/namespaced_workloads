@@ -12,7 +12,7 @@
     kubernetes.core.k8s:
       state: absent
       template: devworkspace.yaml.j2
-    
+
   - name: Remove rolebindings
     vars:
       _ns_private_lmaas_namespace: "{{ namespace_prefix }}-{{ guid }}"

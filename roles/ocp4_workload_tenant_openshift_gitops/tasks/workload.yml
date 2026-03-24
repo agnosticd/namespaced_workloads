@@ -23,12 +23,15 @@
           extraConfig: "{{ {'accounts.' ~ ocp4_workload_tenant_openshift_gitops_user: 'apiKey, login'} }}"
 
   - name: Generate HTPasswd hash for password
-    ansible.builtin.shell: |
-      htpasswd -nbBC 10 "" "{{ ocp4_workload_tenant_openshift_gitops_user_password }}" | tr -d ':\n'
+    ansible.builtin.shell:
+      cmd: |
+        set -o pipefail
+        htpasswd -nbBC 10 "" "{{ ocp4_workload_tenant_openshift_gitops_user_password }}" | tr -d ':\n'
     register: r_htpasswd_hash
+    changed_when: false
     no_log: true
 
-  - name: Set password for {{ ocp4_workload_tenant_openshift_gitops_user }} in argocd-secret
+  - name: Set password in argocd-secret for {{ ocp4_workload_tenant_openshift_gitops_user }}
     kubernetes.core.k8s_json_patch:
       api_version: v1
       kind: Secret

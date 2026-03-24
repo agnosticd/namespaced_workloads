@@ -52,7 +52,10 @@
 
 - name: Get user ID from Keycloak
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_username }}"
+    url: >-
+      {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
+      ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{
+      ocp4_workload_tenant_keycloak_username }}
     method: GET
     validate_certs: false
     headers:
@@ -61,7 +64,10 @@
 
 - name: Set password for Keycloak user
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{ r_keycloak_user.json[0].id }}/reset-password"
+    url: >-
+      {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
+      ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{
+      r_keycloak_user.json[0].id }}/reset-password
     method: PUT
     validate_certs: false
     body_format: json
