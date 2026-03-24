@@ -60,7 +60,10 @@
 
   - name: Build RBAC policy line to remove
     ansible.builtin.set_fact:
-      _rbac_line_to_remove: "g, {{ ocp4_workload_tenant_openshift_gitops_user }}, role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{ ocp4_workload_tenant_openshift_gitops_user }}"
+      _rbac_line_to_remove: >-
+        g, {{ ocp4_workload_tenant_openshift_gitops_user }},
+        role:{{ ocp4_workload_tenant_openshift_gitops_user_project_prefix }}-{{
+        ocp4_workload_tenant_openshift_gitops_user }}
 
   - name: Get current RBAC policy from ArgoCD CR
     ansible.builtin.set_fact:
