@@ -68,3 +68,12 @@ ocp4_workload_tenant_devspaces_devfile_env_vars: []
 
 # SCC attribute for container builds
 ocp4_workload_tenant_devspaces_scc: "container-build"
+
+# VS Code / che-code workspace settings (applied to all workspaces)
+# These settings are injected into the DevWorkspace attributes
+# Example settings to disable auto-save (prevents AI code fixes from being auto-accepted):
+# ocp4_workload_tenant_devspaces_vscode_settings:
+#   files.autoSave: "off"
+#   editor.formatOnSave: false
+#   editor.codeActionsOnSave: {}
+ocp4_workload_tenant_devspaces_vscode_settings: {}
