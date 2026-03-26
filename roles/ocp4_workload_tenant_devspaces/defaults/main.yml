@@ -56,7 +56,9 @@ ocp4_workload_tenant_devspaces_use_embedded_devfile: false
 ocp4_workload_tenant_devspaces_devworkspace_template_name: "che-code-{{ ocp4_workload_tenant_devspaces_username }}"
 
 # VS Code editor images (used when embedded devfile is enabled)
+# yamllint disable-line rule:line-length
 ocp4_workload_tenant_devspaces_che_code_image: "registry.redhat.io/devspaces/code-rhel9@sha256:5cd4fe568b4352bc5ef6ec0b16c3235fe515c2afb86fb076ed435cea65ea2247"
+# yamllint disable-line rule:line-length
 ocp4_workload_tenant_devspaces_udi_image: "registry.redhat.io/devspaces/udi-rhel9@sha256:024712461154d505de3180f4459363c46bc5d0fe7465d7e270108540ce8902fe"
 
 # Environment variables to inject into devfile containers (when embedded mode is enabled)
