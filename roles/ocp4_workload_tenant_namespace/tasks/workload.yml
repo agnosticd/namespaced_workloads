@@ -48,11 +48,10 @@
     definition:
       apiVersion: v1
       kind: Namespace
-      metadata:
-        name: "{{ item.name }}"
-        labels:
-          created-by: agnosticd
-          tenant: "{{ ocp4_workload_tenant_namespace_username }}"
+      metadata: >-
+        {{ ocp4_workload_tenant_namespace_metadata
+          | ansible.builtin.combine(ocp4_workload_tenant_namespace_default_metadata, recursive=True)
+          | ansible.builtin.combine({'name': item.name}) }}
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
