@@ -50,7 +50,7 @@
     force_basic_auth: true
     body_format: json
     body:
-      email: "{{ ocp4_workload_tenant_gitea_user_username }}@example.com"
+      email: "{{ ocp4_workload_tenant_gitea_user_email }}"
       login_name: "{{ ocp4_workload_tenant_gitea_user_username }}"
       must_change_password: false
       password: "{{ ocp4_workload_tenant_gitea_user_password }}"

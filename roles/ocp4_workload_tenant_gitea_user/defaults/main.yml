@@ -12,6 +12,7 @@ ocp4_workload_tenant_gitea_user_name: gitea
 # User to create
 ocp4_workload_tenant_gitea_user_username: ""
 ocp4_workload_tenant_gitea_user_password: ""
+ocp4_workload_tenant_gitea_user_email: "{{ ocp4_workload_tenant_gitea_user_username }}@example.com"
 
 # Repositories to migrate for the user
 ocp4_workload_tenant_gitea_user_repositories: []
