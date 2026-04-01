@@ -42,7 +42,10 @@
 
 - name: Get user ID from Keycloak
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_keycloak_username }}&exact=true"
+    url: >-
+      {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
+      ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{
+      ocp4_workload_tenant_keycloak_username }}&exact=true
     method: GET
     validate_certs: false
     headers:
@@ -52,7 +55,10 @@
 - name: Delete user from Keycloak
   when: r_keycloak_user.json | length > 0
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{ r_keycloak_user.json[0].id }}"
+    url: >-
+      {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
+      ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{
+      r_keycloak_user.json[0].id }}
     method: DELETE
     validate_certs: false
     headers:

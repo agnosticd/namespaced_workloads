@@ -3,10 +3,12 @@ profile: production
 
 exclude_paths:
 - tests/
+- .ansible/
 
 skip_list:
 - var-naming[no-role-prefix]
 - galaxy[no-changelog]
+- ignore-errors
 
 mock_modules:
 - agnosticd.core.agnosticd_user_info
