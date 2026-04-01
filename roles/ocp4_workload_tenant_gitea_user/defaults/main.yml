@@ -1,0 +1,21 @@
+---
+# Cluster connection
+ocp4_workload_tenant_gitea_user_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_gitea_user_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# Namespace where the Gitea instance is deployed
+ocp4_workload_tenant_gitea_user_namespace: gitea
+
+# Name of the Gitea custom resource
+ocp4_workload_tenant_gitea_user_name: gitea
+
+# User to create
+ocp4_workload_tenant_gitea_user_username: ""
+ocp4_workload_tenant_gitea_user_password: ""
+
+# Repositories to migrate for the user
+ocp4_workload_tenant_gitea_user_repositories: []
+# Example:
+# - name: my-repo
+#   repo: https://github.com/org/my-repo
+#   private: false
