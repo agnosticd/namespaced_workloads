@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: ocp4_workload_tenant_gitea_user
+  author: Wolfgang Kulhanek <wkulhane@redhat.com>
+  description: >-
+    Creates a Gitea user and optionally migrates repositories
+    on an existing Gitea instance.
+  min_ansible_version: '2.15'
+  platforms: []
+  license: GNU General Public License v3.0
+  galaxy_tags:
+  - ocp4
+  - openshift
+dependencies: []

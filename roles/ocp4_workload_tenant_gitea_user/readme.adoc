@@ -1,0 +1,16 @@
+= ocp4_workload_tenant_gitea_user - Create a Gitea tenant user and migrate repositories
+
+== Role overview
+
+* This role creates a user on an existing Gitea instance deployed via the Gitea operator.
+* Optionally migrates a list of repositories from external sources to the user's account.
+* Supports teardown by deleting all user repositories and the user account.
+
+== Requirements
+
+* A Gitea instance deployed via the Gitea operator (CR kind: `Gitea`, apiVersion: `pfe.rhpds.com/v1`).
+* The Gitea admin setup must be complete (`status.adminSetupComplete: true`).
+
+== The defaults variable file
+
+* This file ./defaults/main.yml contains all the variables you need to define to control the deployment of your workload.

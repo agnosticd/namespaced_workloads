@@ -1,0 +1,72 @@
+---
+- name: Get Gitea custom resource
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: pfe.rhpds.com/v1
+    kind: Gitea
+    name: "{{ ocp4_workload_tenant_gitea_user_name }}"
+    namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"
+  register: r_gitea
+  failed_when: r_gitea.resources | length == 0
+
+- name: Validate Gitea admin setup is complete
+  ansible.builtin.assert:
+    that:
+    - r_gitea.resources[0].status.adminSetupComplete | bool
+    fail_msg: Gitea admin setup is not complete yet.
+
+- name: Set Gitea connection facts
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitea_user_admin_user: >-
+      {{ r_gitea.resources[0].spec.giteaAdminUser }}
+    _ocp4_workload_tenant_gitea_user_admin_password: >-
+      {{ r_gitea.resources[0].status.adminPassword }}
+    _ocp4_workload_tenant_gitea_user_route: >-
+      {{ r_gitea.resources[0].status.giteaRoute }}
+
+- name: Get all repositories for Gitea user
+  ansible.builtin.uri:
+    url: >-
+      {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/search?owner={{
+      ocp4_workload_tenant_gitea_user_username }}&limit=50
+    method: GET
+    url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
+    url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code:
+    - 200
+  register: r_gitea_user_repos
+
+- name: Delete all repositories for Gitea user
+  when: r_gitea_user_repos.json.data | default([]) | length > 0
+  ansible.builtin.uri:
+    url: >-
+      {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/{{
+      ocp4_workload_tenant_gitea_user_username }}/{{ item.name }}
+    method: DELETE
+    url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
+    url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code:
+    - 204
+  loop: "{{ r_gitea_user_repos.json.data | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Delete Gitea user
+  ansible.builtin.uri:
+    url: >-
+      {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/admin/users/{{
+      ocp4_workload_tenant_gitea_user_username }}
+    method: DELETE
+    url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
+    url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code:
+    - 204
+    - 404

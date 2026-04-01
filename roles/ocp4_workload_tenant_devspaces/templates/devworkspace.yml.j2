@@ -25,6 +25,9 @@ spec:
         namespace: openshift-devspaces
       controller.devfile.io/scc: {{ ocp4_workload_tenant_devspaces_scc }}
       controller.devfile.io/storage-type: per-user
+{% if ocp4_workload_tenant_devspaces_vscode_settings | default({}) | length > 0 %}
+      che-code.workspace.settings: {{ ocp4_workload_tenant_devspaces_vscode_settings | to_json }}
+{% endif %}
 
     # Embedded devfile content (stripped of schemaVersion and metadata, with env vars injected)
 {{ _devfile_template_content | to_nice_yaml(indent=2) | indent(4, first=True) }}
@@ -36,6 +39,10 @@ spec:
     uri: {{ ocp4_workload_tenant_devspaces_devworkspace_devfile }}
 
   template:
+{% if ocp4_workload_tenant_devspaces_vscode_settings | default({}) | length > 0 %}
+    attributes:
+      che-code.workspace.settings: {{ ocp4_workload_tenant_devspaces_vscode_settings | to_json }}
+{% endif %}
 {% if ocp4_workload_tenant_devspaces_devworkspace_projects | default([]) | length > 0 %}
     projects:
 {% for project in ocp4_workload_tenant_devspaces_devworkspace_projects %}
