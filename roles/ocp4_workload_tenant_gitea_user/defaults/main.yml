@@ -7,6 +7,9 @@ ocp4_workload_tenant_gitea_user_openshift_api_token: "{{ cluster_admin_agnosticd
 ocp4_workload_tenant_gitea_user_namespace: gitea
 
 # Name of the Gitea custom resource instance
+# Must match what is deployed on the cluster to retrieve:
+# - Gitea URL
+# - Gitea admin credentials
 ocp4_workload_tenant_gitea_user_instance: gitea
 
 # User to create
