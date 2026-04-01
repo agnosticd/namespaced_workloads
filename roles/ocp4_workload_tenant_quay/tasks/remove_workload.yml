@@ -86,6 +86,10 @@
     status_code: 200
   register: r_quay_user_repos
 
+- name: Debug repositories found for user
+  ansible.builtin.debug:
+    msg: "Found {{ r_quay_user_repos.json.repositories | default([]) | length }} repositories: {{ r_quay_user_repos.json.repositories | default([]) | map(attribute='name') | list }}"
+
 - name: Delete all repositories for Quay user
   when: r_quay_user_repos.json.repositories | default([]) | length > 0
   ansible.builtin.uri:
