@@ -1,0 +1,9 @@
+= ocp4_workload_hummingbird - Deploy Migration Toolkit for Applications 8 to an OpenShift Cluster
+
+== Role overview
+
+* This role installs MTA 8 into an OpenShift Cluster.
+
+== The defaults variable file
+
+* This file ./defaults/main.yml contains all the variables you need to define to control the deployment of your workload.

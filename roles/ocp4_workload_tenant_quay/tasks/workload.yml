@@ -1,0 +1,169 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+    - ocp4_workload_tenant_quay_user | length > 0
+    - ocp4_workload_tenant_quay_user_password | length > 0
+    fail_msg: >-
+      ocp4_workload_tenant_quay_user and ocp4_workload_tenant_quay_user_password
+      must be set via the tenant configuration
+
+- name: Get Quay registry endpoint
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
+    validate_certs: false
+    api_version: quay.redhat.com/v1
+    kind: QuayRegistry
+    name: "{{ ocp4_workload_tenant_quay_instance }}"
+    namespace: "{{ ocp4_workload_tenant_quay_namespace }}"
+  register: r_quay_registry
+  failed_when: r_quay_registry.resources | length == 0
+
+- name: Set Quay API URL
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_quay_api_url: >-
+      {{ r_quay_registry.resources[0].status.registryEndpoint | trim | regex_replace('/$', '') }}
+
+- name: Get Quay admin credentials from secret
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp4_workload_tenant_quay_admin_credentials_secret }}"
+    namespace: "{{ ocp4_workload_tenant_quay_namespace }}"
+  register: r_quay_admin_secret
+  until: r_quay_admin_secret.resources | length > 0
+  retries: 10
+  delay: 5
+
+- name: Set Quay admin credentials
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_quay_admin_user: >-
+      {{ r_quay_admin_secret.resources[0].data.username | b64decode | trim }}
+    _ocp4_workload_tenant_quay_admin_password: >-
+      {{ r_quay_admin_secret.resources[0].data.password | b64decode | trim }}
+  no_log: true
+
+- name: Get initial CSRF token
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_quay_api_url }}/csrf_token"
+    method: GET
+    validate_certs: false
+    status_code: 200
+  register: r_quay_csrf_initial
+
+- name: Sign in to Quay as admin
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_quay_api_url }}/api/v1/signin"
+    method: POST
+    validate_certs: false
+    headers:
+      Cookie: "{{ r_quay_csrf_initial.cookies_string }}"
+      X-CSRF-Token: "{{ r_quay_csrf_initial.json.csrf_token }}"
+    body_format: json
+    body:
+      username: "{{ _ocp4_workload_tenant_quay_admin_user }}"
+      password: "{{ _ocp4_workload_tenant_quay_admin_password }}"
+    status_code: 200
+  register: r_quay_signin
+  no_log: true
+
+- name: Get authenticated CSRF token
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_quay_api_url }}/csrf_token"
+    method: GET
+    validate_certs: false
+    headers:
+      Cookie: "{{ r_quay_signin.cookies_string }}"
+    status_code: 200
+  register: r_quay_csrf_auth
+
+- name: Create Quay user
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/"
+    method: POST
+    validate_certs: false
+    headers:
+      Cookie: "{{ r_quay_signin.cookies_string }}"
+      X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
+    body_format: json
+    body:
+      username: "{{ ocp4_workload_tenant_quay_user }}"
+      email: "{{ ocp4_workload_tenant_quay_user }}@example.com"
+    status_code:
+    - 200
+    - 400
+
+- name: Set Quay user password
+  ansible.builtin.uri:
+    url: >-
+      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/{{
+      ocp4_workload_tenant_quay_user }}
+    method: PUT
+    validate_certs: false
+    headers:
+      Cookie: "{{ r_quay_signin.cookies_string }}"
+      X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
+    body_format: json
+    body:
+      password: "{{ ocp4_workload_tenant_quay_user_password }}"
+    status_code: 200
+
+- name: Create docker-registry secrets for Quay
+  when: ocp4_workload_tenant_quay_pipeline_namespaces | default([]) | length > 0
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: quay-registry-credentials
+        namespace: "{{ _pipeline_ns }}"
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: >-
+          {{ {'auths': {_ocp4_workload_tenant_quay_api_url:
+          {'username': ocp4_workload_tenant_quay_user,
+          'password': ocp4_workload_tenant_quay_user_password,
+          'auth': (ocp4_workload_tenant_quay_user
+          ~ ':' ~ ocp4_workload_tenant_quay_user_password)
+          | b64encode}}} | to_json | b64encode }}
+  loop: "{{ ocp4_workload_tenant_quay_pipeline_namespaces }}"
+  loop_control:
+    loop_var: _pipeline_ns
+
+- name: Link secret to pipeline ServiceAccount
+  when: ocp4_workload_tenant_quay_pipeline_namespaces | default([]) | length > 0
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    merge_type: strategic-merge
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: pipeline
+        namespace: "{{ _pipeline_ns }}"
+      secrets:
+      - name: quay-registry-credentials
+      imagePullSecrets:
+      - name: quay-registry-credentials
+  loop: "{{ ocp4_workload_tenant_quay_pipeline_namespaces }}"
+  loop_control:
+    loop_var: _pipeline_ns
+
+- name: Save user information
+  agnosticd.core.agnosticd_user_info:
+    data:
+      quay_url: "{{ _ocp4_workload_tenant_quay_api_url }}"
+      quay_hostname: "{{ _ocp4_workload_tenant_quay_api_url | urlsplit('hostname') }}"
+      quay_user: "{{ ocp4_workload_tenant_quay_user }}"
+      quay_password: "{{ ocp4_workload_tenant_quay_user_password }}"
