@@ -1,7 +1,7 @@
 ---
 # Cluster connection
-ocp4_workload_tenant_quay_openshift_api_url: "{{ openshift_api_url }}"
-ocp4_workload_tenant_quay_openshift_api_token: "{{ openshift_cluster_admin_token | trim }}"
+ocp4_workload_tenant_quay_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_quay_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
 # Location of the Quay Registry on the cluster
 ocp4_workload_tenant_quay_namespace: quay
