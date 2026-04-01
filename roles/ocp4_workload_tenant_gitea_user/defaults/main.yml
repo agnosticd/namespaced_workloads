@@ -1,13 +1,13 @@
 ---
 # Cluster connection
-ocp4_workload_tenant_gitea_user_openshift_api_url: "{{ openshift_api_url }}"
-ocp4_workload_tenant_gitea_user_openshift_api_token: "{{ openshift_cluster_admin_token | trim }}"
+ocp4_workload_tenant_gitea_user_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_gitea_user_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
 
 # Namespace where the Gitea instance is deployed
 ocp4_workload_tenant_gitea_user_namespace: gitea
 
-# Name of the Gitea custom resource
-ocp4_workload_tenant_gitea_user_name: gitea
+# Name of the Gitea custom resource instance
+ocp4_workload_tenant_gitea_user_instance: gitea
 
 # User to create
 ocp4_workload_tenant_gitea_user_username: ""

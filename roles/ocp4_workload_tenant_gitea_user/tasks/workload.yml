@@ -6,7 +6,7 @@
     validate_certs: false
     api_version: pfe.rhpds.com/v1
     kind: Gitea
-    name: "{{ ocp4_workload_tenant_gitea_user_name }}"
+    name: "{{ ocp4_workload_tenant_gitea_user_instance }}"
     namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"
   register: r_gitea
   failed_when: r_gitea.resources | length == 0
