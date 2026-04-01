@@ -35,7 +35,9 @@
     name: "{{ ocp4_workload_tenant_quay_admin_credentials_secret }}"
     namespace: "{{ ocp4_workload_tenant_quay_namespace }}"
   register: r_quay_admin_secret
-  failed_when: r_quay_admin_secret.resources | length == 0
+  until: r_quay_admin_secret.resources | length > 0
+  retries: 10
+  delay: 5
 
 - name: Set Quay admin credentials
   ansible.builtin.set_fact:
