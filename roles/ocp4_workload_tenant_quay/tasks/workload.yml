@@ -1,8 +1,8 @@
 ---
 - name: Get Quay registry endpoint
   kubernetes.core.k8s_info:
-    host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
     validate_certs: false
     api_version: quay.redhat.com/v1
     kind: QuayRegistry
@@ -18,8 +18,8 @@
 
 - name: Get Quay admin token from secret
   kubernetes.core.k8s_info:
-    host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
     validate_certs: false
     api_version: v1
     kind: Secret
@@ -63,8 +63,8 @@
 
 # - name: Create docker-registry secrets for Quay
 #   kubernetes.core.k8s:
-#     host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
-#     api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+#     host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+#     api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
 #     validate_certs: false
 #     state: present
 #     definition:
@@ -85,8 +85,8 @@
 
 # - name: Link secret to pipeline ServiceAccount
 #   kubernetes.core.k8s:
-#     host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
-#     api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+#     host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
+#     api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
 #     validate_certs: false
 #     state: present
 #     merge_type: strategic-merge
