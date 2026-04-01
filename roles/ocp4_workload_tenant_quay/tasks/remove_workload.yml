@@ -112,20 +112,20 @@
 # -----------------------------------------------
 # Delete the Quay user
 # -----------------------------------------------
-- name: Delete Quay user
-  ansible.builtin.uri:
-    url: >-
-      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/{{
-      ocp4_workload_tenant_quay_user }}
-    method: DELETE
-    validate_certs: false
-    headers:
-      Cookie: "{{ r_quay_signin.cookies_string }}"
-      X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
-    status_code:
-    - 200
-    - 204
-    - 404
+# - name: Delete Quay user
+#   ansible.builtin.uri:
+#     url: >-
+#       {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/{{
+#       ocp4_workload_tenant_quay_user }}
+#     method: DELETE
+#     validate_certs: false
+#     headers:
+#       Cookie: "{{ r_quay_signin.cookies_string }}"
+#       X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
+#     status_code:
+#     - 200
+#     - 204
+#     - 404
 
 # -----------------------------------------------
 # Clean up pipeline secrets from namespaces
