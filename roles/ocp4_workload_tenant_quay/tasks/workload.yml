@@ -1,4 +1,13 @@
 ---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+    - ocp4_workload_tenant_quay_user | length > 0
+    - ocp4_workload_tenant_quay_user_password | length > 0
+    fail_msg: >-
+      ocp4_workload_tenant_quay_user and ocp4_workload_tenant_quay_user_password
+      must be set via the tenant configuration
+
 - name: Get Quay registry endpoint
   kubernetes.core.k8s_info:
     host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
@@ -14,52 +23,21 @@
 - name: Set Quay API URL
   ansible.builtin.set_fact:
     _ocp4_workload_tenant_quay_api_url: >-
-      {{ r_quay_registry.resources[0].status.registryEndpoint }}
-
-- name: Get Quay admin token from secret
-  kubernetes.core.k8s_info:
-    host: "{{ ocp4_workload_tenant_quay_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_quay_openshift_api_token }}"
-    validate_certs: false
-    api_version: v1
-    kind: Secret
-    name: quay-admin-token
-    namespace: "{{ ocp4_workload_tenant_quay_namespace }}"
-  register: r_quay_token_secret
-  failed_when: r_quay_token_secret.resources | length == 0
-
-- name: Set Quay admin token
-  ansible.builtin.set_fact:
-    _ocp4_workload_tenant_quay_token: >-
-      {{ r_quay_token_secret.resources[0].data.token | b64decode }}
+      {{ r_quay_registry.resources[0].status.registryEndpoint | trim | regex_replace('/$', '') }}
 
 - name: Create Quay user
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/"
+    url: "{{ _ocp4_workload_tenant_quay_api_url }}/api/v1/user/"
     method: POST
-    headers:
-      Authorization: "Bearer {{ _ocp4_workload_tenant_quay_token }}"
     body_format: json
     body:
       username: "{{ ocp4_workload_tenant_quay_user }}"
+      password: "{{ ocp4_workload_tenant_quay_user_password }}"
       email: "{{ ocp4_workload_tenant_quay_user }}@example.com"
     validate_certs: false
     status_code:
     - 200
     - 400
-
-- name: Set Quay user password
-  ansible.builtin.uri:
-    url: >-
-      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/{{ ocp4_workload_tenant_quay_user }}
-    method: PUT
-    headers:
-      Authorization: "Bearer {{ _ocp4_workload_tenant_quay_token }}"
-    body_format: json
-    body:
-      password: "{{ ocp4_workload_tenant_quay_user_password }}"
-    validate_certs: false
-    status_code: 200
 
 # - name: Create docker-registry secrets for Quay
 #   kubernetes.core.k8s:
