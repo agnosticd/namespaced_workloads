@@ -36,13 +36,13 @@
       {{ r_quay_admin_secret.resources[0].data.password | b64decode | trim }}
   no_log: true
 
-- name: Get initial CSRF token
+- name: Get initial CSRF token for admin session
   ansible.builtin.uri:
     url: "{{ _ocp4_workload_tenant_quay_api_url }}/csrf_token"
     method: GET
     validate_certs: false
     status_code: 200
-  register: r_quay_csrf_initial
+  register: r_quay_csrf_admin_initial
 
 - name: Sign in to Quay as admin
   ansible.builtin.uri:
@@ -50,82 +50,40 @@
     method: POST
     validate_certs: false
     headers:
-      Cookie: "{{ r_quay_csrf_initial.cookies_string }}"
-      X-CSRF-Token: "{{ r_quay_csrf_initial.json.csrf_token }}"
+      Cookie: "{{ r_quay_csrf_admin_initial.cookies_string }}"
+      X-CSRF-Token: "{{ r_quay_csrf_admin_initial.json.csrf_token }}"
     body_format: json
     body:
       username: "{{ _ocp4_workload_tenant_quay_admin_user }}"
       password: "{{ _ocp4_workload_tenant_quay_admin_password }}"
     status_code: 200
-  register: r_quay_signin
+  register: r_quay_admin_signin
   no_log: true
 
-- name: Get authenticated CSRF token
+- name: Get authenticated CSRF token for admin session
   ansible.builtin.uri:
     url: "{{ _ocp4_workload_tenant_quay_api_url }}/csrf_token"
     method: GET
     validate_certs: false
     headers:
-      Cookie: "{{ r_quay_signin.cookies_string }}"
+      Cookie: "{{ r_quay_admin_signin.cookies_string }}"
     status_code: 200
-  register: r_quay_csrf_auth
+  register: r_quay_csrf_admin_auth
 
-# -----------------------------------------------
-# Delete all repositories owned by the user
-# -----------------------------------------------
-- name: List repositories for Quay user
+- name: Delete Quay user
   ansible.builtin.uri:
     url: >-
-      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/repository?namespace={{
+      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/{{
       ocp4_workload_tenant_quay_user }}
-    method: GET
-    validate_certs: false
-    headers:
-      Cookie: "{{ r_quay_signin.cookies_string }}"
-      X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
-    status_code: 200
-  register: r_quay_user_repos
-
-- name: Debug repositories found for user
-  ansible.builtin.debug:
-    msg: "Found {{ r_quay_user_repos.json.repositories | default([]) | length }} repositories: {{ r_quay_user_repos.json.repositories | default([]) | map(attribute='name') | list }}"
-
-- name: Delete all repositories for Quay user
-  when: r_quay_user_repos.json.repositories | default([]) | length > 0
-  ansible.builtin.uri:
-    url: >-
-      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/repository/{{
-      ocp4_workload_tenant_quay_user }}/{{ _repo.name }}
     method: DELETE
     validate_certs: false
     headers:
-      Cookie: "{{ r_quay_signin.cookies_string }}"
-      X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
+      Cookie: "{{ r_quay_admin_signin.cookies_string }}"
+      X-CSRF-Token: "{{ r_quay_csrf_admin_auth.json.csrf_token }}"
     status_code:
+    - 200
     - 204
     - 404
-  loop: "{{ r_quay_user_repos.json.repositories | default([]) }}"
-  loop_control:
-    loop_var: _repo
-    label: "{{ _repo.name }}"
-
-# -----------------------------------------------
-# Delete the Quay user
-# -----------------------------------------------
-# - name: Delete Quay user
-#   ansible.builtin.uri:
-#     url: >-
-#       {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/superuser/users/{{
-#       ocp4_workload_tenant_quay_user }}
-#     method: DELETE
-#     validate_certs: false
-#     headers:
-#       Cookie: "{{ r_quay_signin.cookies_string }}"
-#       X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
-#     status_code:
-#     - 200
-#     - 204
-#     - 404
 
 # -----------------------------------------------
 # Clean up pipeline secrets from namespaces
