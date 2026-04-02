@@ -1,8 +1,13 @@
-= ocp4_workload_hummingbird - Deploy Migration Toolkit for Applications 8 to an OpenShift Cluster
+= ocp4_workload_tenant_quay - Deploy a Quay Tenant to a shared cluster
 
-== Role overview
+== Prerequisites
 
-* This role installs MTA 8 into an OpenShift Cluster.
+Quay must have been deployed to the shared cluster with the following variables set:
+
+[source]
+----
+ocp4_workload_quay_operator_registry_save_admin_credentials: true
+----
 
 == The defaults variable file
 
