@@ -63,7 +63,9 @@
     validate_certs: false
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
-    status_code: 204
+    status_code:
+    - 204
+    - 404
 
 # -----------------------------------------------
 # OCP Identity and User cleanup
