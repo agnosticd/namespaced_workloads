@@ -10,18 +10,12 @@ ocp4_workload_tenant_namespace_username: "user-{{ guid }}"
 ocp4_workload_tenant_namespace_role: admin
 
 # Metadata to apply to the namespace, e.g.
-# ocp4_workload_tenant_namespace_metadata:
+# ocp4_workload_tenant_namespace_default_metadata:
 #   labels:
 #     opendatahub.io/dashboard: "true"
 #     kueue-managed: "true"
 #     kueue.openshift.io/managed: "true"
-#   annotations:
-#     openshift.io/display-name: "{{ ocp4_workload_tenant_namespace_username | ansible.builtin.title }} Project"
-ocp4_workload_tenant_namespace_metadata: {}
-ocp4_workload_tenant_namespace_default_metadata:
-  labels:
-    created-by: agnosticd
-    tenant: "{{ ocp4_workload_tenant_namespace_username }}"
+ocp4_workload_tenant_namespace_default_metadata: {}
 
 # Namespaces to create. Leave empty to create a single namespace named after
 # the user (no suffix). Each entry requires 'suffix'. 'quota' and
@@ -43,7 +37,12 @@ ocp4_workload_tenant_namespace_default_metadata:
 #     defaultRequest:
 #       cpu: 500m
 #       memory: 1Gi
-# - suffix: mydb   # no quota/limit_range — uses role defaults
+#   metadata:
+#     labels:
+#       opendatahub.io/dashboard: "true"
+#     annotations:
+#       openshift.io/display-name: "My App"
+# - suffix: mydb   # no quota/limit_range/metadata — uses role defaults
 ocp4_workload_tenant_namespace_suffixes: []
 
 # Use an OpenShift ClusterResourceQuota (CRQ) scoped to the tenant label.
