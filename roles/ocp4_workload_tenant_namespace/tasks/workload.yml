@@ -40,8 +40,9 @@
                       "created-by": "agnosticd",
                       "tenant": ocp4_workload_tenant_namespace_username
                     }
-                  }
-                recursive=True),
+                  },
+                  recursive=True
+                ),
          }] }}
   loop: "{{ ocp4_workload_tenant_namespace_suffixes }}"
   loop_control:
