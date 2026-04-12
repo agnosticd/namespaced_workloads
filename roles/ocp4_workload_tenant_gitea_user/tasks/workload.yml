@@ -100,15 +100,19 @@
       url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
       force_basic_auth: true
       body_format: json
-      body:
-        clone_addr: "{{ item.item.repo }}"
-        description: ""
-        issues: false
-        milestones: false
-        mirror: false
-        private: "{{ item.item.private | default(false) }}"
-        repo_name: "{{ item.item.name }}"
-        uid: "{{ r_gitea_user_info.json.id | int }}"
+      body: >-
+        {{
+          {
+            'clone_addr': item.item.repo,
+            'description': '',
+            'issues': false,
+            'milestones': false,
+            'mirror': false,
+            'private': item.item.private | default(false),
+            'repo_name': item.item.name,
+            'uid': r_gitea_user_info.json.id | int
+          }
+        }}
       validate_certs: false
       status_code:
       - 201
