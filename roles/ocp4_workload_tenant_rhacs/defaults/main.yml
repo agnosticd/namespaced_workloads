@@ -1,0 +1,22 @@
+---
+# Cluster connection (from sandbox)
+ocp4_workload_tenant_rhacs_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_rhacs_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# RHACS Central namespace (where secrets and route live)
+ocp4_workload_tenant_rhacs_central_namespace: stackrox
+
+# Auth provider type: "keycloak" or "openshift"
+ocp4_workload_tenant_rhacs_auth_type: keycloak
+
+# User to grant roles to
+ocp4_workload_tenant_rhacs_username: "user-{{ guid }}"
+
+# RHACS roles to grant to the user (list)
+# Common roles: Admin, Analyst, Continuous Integration, None,
+#   Scope Manager, Sensor Creator, Vulnerability Management Approver
+ocp4_workload_tenant_rhacs_roles:
+- Analyst
+
+# Key used for user matching in RHACS (typically "name" or "email")
+ocp4_workload_tenant_rhacs_user_attribute: "name"

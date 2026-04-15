@@ -1,0 +1,94 @@
+---
+- name: Get RHACS admin password
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_rhacs_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_rhacs_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: acs-password
+    namespace: "{{ ocp4_workload_tenant_rhacs_central_namespace }}"
+  register: r_acs_password
+  retries: 5
+  delay: 5
+  until:
+  - r_acs_password.resources is defined
+  - r_acs_password.resources | length > 0
+
+- name: Get auth provider ID
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_rhacs_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_rhacs_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: acs-auth-provider
+    namespace: "{{ ocp4_workload_tenant_rhacs_central_namespace }}"
+  register: r_acs_auth_provider
+  retries: 5
+  delay: 5
+  until:
+  - r_acs_auth_provider.resources is defined
+  - r_acs_auth_provider.resources | length > 0
+
+- name: Get Central route
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_rhacs_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_rhacs_openshift_api_token }}"
+    validate_certs: false
+    kind: Route
+    api_version: route.openshift.io/v1
+    namespace: "{{ ocp4_workload_tenant_rhacs_central_namespace }}"
+    name: central
+  register: r_central_route
+  retries: 5
+  delay: 5
+  until: r_central_route.resources[0].spec.host is defined
+
+- name: Set RHACS connection facts
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_rhacs_admin_password: "{{ r_acs_password.resources[0].data.password | b64decode }}"
+    _ocp4_workload_tenant_rhacs_auth_provider_id: >-
+      {{ r_acs_auth_provider.resources[0].data[
+        (ocp4_workload_tenant_rhacs_auth_type == 'openshift')
+        | ternary('openshiftAuthProviderId', 'keycloakAuthProviderId')
+      ] | b64decode }}
+    _ocp4_workload_tenant_rhacs_central_route: "https://{{ r_central_route.resources[0].spec.host }}"
+
+- name: Get current RHACS groups
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_rhacs_central_route }}/v1/groups"
+    method: GET
+    user: admin
+    password: "{{ _ocp4_workload_tenant_rhacs_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: 200
+  register: r_rhacs_groups
+
+- name: Find groups belonging to user
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_rhacs_user_groups: >-
+      {{
+        r_rhacs_groups.json.groups | default([])
+        | selectattr('props.authProviderId', 'equalto', _ocp4_workload_tenant_rhacs_auth_provider_id)
+        | selectattr('props.key', 'equalto', ocp4_workload_tenant_rhacs_user_attribute)
+        | selectattr('props.value', 'equalto', ocp4_workload_tenant_rhacs_username)
+        | list
+      }}
+
+- name: Remove user's RHACS role mappings
+  when: _ocp4_workload_tenant_rhacs_user_groups | length > 0
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_rhacs_central_route }}/v1/groupsbatch"
+    body:
+      previousGroups: "{{ _ocp4_workload_tenant_rhacs_user_groups }}"
+      requiredGroups: []
+    method: POST
+    user: admin
+    password: "{{ _ocp4_workload_tenant_rhacs_admin_password }}"
+    body_format: json
+    force_basic_auth: true
+    validate_certs: false
+    status_code: 200
+  register: r_rhacs_groupsbatch_remove
