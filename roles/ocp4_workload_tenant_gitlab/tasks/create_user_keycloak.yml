@@ -58,7 +58,10 @@
 
 - name: Get user from Keycloak realm
   ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitlab_keycloak_url }}/admin/realms/{{ ocp4_workload_tenant_gitlab_keycloak_realm }}/users?username={{ ocp4_workload_tenant_gitlab_username }}"
+    url: >-
+      {{ _ocp4_workload_tenant_gitlab_keycloak_url }}/admin/realms/{{
+      ocp4_workload_tenant_gitlab_keycloak_realm }}/users?username={{
+      ocp4_workload_tenant_gitlab_username }}
     method: GET
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
@@ -90,7 +93,9 @@
     body:
       email: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.email }}"
       username: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.username }}"
-      name: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.firstName | default('') }} {{ _ocp4_workload_tenant_gitlab_keycloak_user.lastName | default('') }}"
+      name: >-
+        {{ _ocp4_workload_tenant_gitlab_keycloak_user.firstName | default('') }}
+        {{ _ocp4_workload_tenant_gitlab_keycloak_user.lastName | default('') }}
       extern_uid: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.username }}"
       provider: "openid_connect"
       force_random_password: true

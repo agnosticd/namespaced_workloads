@@ -13,7 +13,13 @@
 
 - name: Set user namespace ID fact
   ansible.builtin.set_fact:
-    _ocp4_workload_tenant_gitlab_user_namespace_id: "{{ (r_namespaces.json | selectattr('path', 'equalto', ocp4_workload_tenant_gitlab_username) | list | first).id }}"
+    _ocp4_workload_tenant_gitlab_user_namespace_id: >-
+      {{
+        (r_namespaces.json
+        | selectattr('path', 'equalto', ocp4_workload_tenant_gitlab_username)
+        | list
+        | first).id
+      }}
 
 - name: Import repositories into user's namespace
   when: ocp4_workload_tenant_gitlab_user_repositories | length > 0
