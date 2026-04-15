@@ -6,9 +6,6 @@ ocp4_workload_tenant_rhacs_openshift_api_token: "{{ cluster_admin_agnosticd_sa_t
 # RHACS Central namespace (where secrets and route live)
 ocp4_workload_tenant_rhacs_central_namespace: stackrox
 
-# Auth provider type: "keycloak" or "openshift"
-ocp4_workload_tenant_rhacs_auth_type: keycloak
-
 # User to grant roles to
 ocp4_workload_tenant_rhacs_username: "user-{{ guid }}"
 
