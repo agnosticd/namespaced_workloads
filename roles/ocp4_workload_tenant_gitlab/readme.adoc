@@ -109,13 +109,7 @@ In Keycloak mode, the role links to an existing Keycloak user:
       ocp4_workload_tenant_gitlab_auth_mode: native
       ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
       ocp4_workload_tenant_gitlab_password: "{{ common_password }}"
-
-      # Automatically add user to all groups matching these access levels
-      ocp4_workload_tenant_gitlab_user_default_access_levels:
-      - developer
 ----
-
-This matches the behavior of `ocp4_workload_gitlab`'s `ocp4_workload_gitlab_user_default_access_levels` variable.
 
 === Example 4: In AgnosticD v2 Catalog
 
@@ -238,11 +232,7 @@ ocp4_workload_tenant_gitlab_user_repositories:
 
 |ocp4_workload_tenant_gitlab_user_groups
 |[]
-|List of shared groups to add user to. Each entry requires `path` and `access_level`.
-
-|ocp4_workload_tenant_gitlab_user_default_access_levels
-|[]
-|List of access level names. User will be added to all groups matching these access levels (similar to `ocp4_workload_gitlab_user_default_access_levels`).
+|List of shared groups to add user to. Each entry requires `name` and `access_level`.
 |===
 
 ==== Access Levels
@@ -257,13 +247,10 @@ Example:
 [source,yaml]
 ----
 ocp4_workload_tenant_gitlab_user_groups:
-- path: developers
+- name: developers
   access_level: developer
-- path: workshop-participants
+- name: workshop-participants
   access_level: reporter
-
-ocp4_workload_tenant_gitlab_user_default_access_levels:
-- developer
 ----
 
 === Keycloak Configuration (Keycloak mode only)
@@ -339,21 +326,6 @@ ocp4_workload_tenant_gitlab_user_groups:
 - path: workshop-participants
   access_level: maintainer
 ----
-
-=== Default Access Levels
-
-Automatically add to all groups matching certain access levels:
-
-[source,yaml]
-----
-ocp4_workload_tenant_gitlab_user_default_access_levels:
-- developer
-- maintainer
-----
-
-This will add the user to all existing groups that have a matching access level designation.
-
-NOTE: The default access levels feature requires groups to be tagged or named in a way that indicates their intended access level. This role grants the first matching access level from the list.
 
 == Troubleshooting
 

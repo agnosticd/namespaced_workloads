@@ -31,16 +31,11 @@ ocp4_workload_tenant_gitlab_user_repositories: []
 #   visibility: private  # public, internal, or private
 
 # Shared groups to add user to
-# Each entry specifies a group name and the access level for the user
-# The group must already exist (created by ocp4_workload_gitlab)
+# Each entry specifies a group name and the access level the user will have in that group
+# The groups must already exist (created by ocp4_workload_gitlab role)
 ocp4_workload_tenant_gitlab_user_groups: []
 # Example:
 # - name: developers
 #   access_level: developer  # guest, reporter, developer, maintainer, owner
-
-# Default access levels - if set, user will be added to all existing groups
-# with these access levels. This matches the behavior of the core_workloads
-# gitlab role's ocp4_workload_gitlab_user_default_access_levels.
-# Leave empty to only use explicit group assignments from user_groups above.
-ocp4_workload_tenant_gitlab_user_default_access_levels: []
-# Example: ["developer"]
+# - name: maintainers
+#   access_level: maintainer

@@ -67,9 +67,7 @@
 # ==================================================================
 
 - name: Add user to shared groups
-  when:
-  - ocp4_workload_tenant_gitlab_user_groups | length > 0 or
-    ocp4_workload_tenant_gitlab_user_default_access_levels | length > 0
+  when: ocp4_workload_tenant_gitlab_user_groups | length > 0
   ansible.builtin.include_tasks: add_user_to_groups.yml
 
 # ==================================================================

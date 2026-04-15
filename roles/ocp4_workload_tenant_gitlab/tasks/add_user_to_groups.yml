@@ -1,5 +1,5 @@
 ---
-# Add user to shared groups based on explicit assignments or default access levels
+# Add user to shared groups with specified access levels
 
 # Map access level names to numeric values
 - name: Set access level mapping
@@ -15,10 +15,10 @@
 # Add user to explicitly defined groups
 # ==================================================================
 
-- name: Add user to explicitly defined shared groups
+- name: Add user to shared groups
   when: ocp4_workload_tenant_gitlab_user_groups | length > 0
   block:
-  - name: Get group info for explicit assignments
+  - name: Get group info
     ansible.builtin.uri:
       url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.name }}"
       method: GET
@@ -29,9 +29,9 @@
     loop: "{{ ocp4_workload_tenant_gitlab_user_groups }}"
     loop_control:
       label: "{{ item.name }}"
-    register: r_explicit_groups
+    register: r_groups
 
-  - name: Add user to explicit groups
+  - name: Add user to groups
     ansible.builtin.uri:
       url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.json.id }}/members"
       method: POST
@@ -44,72 +44,9 @@
         access_level: "{{ _gitlab_access_level_map[item.item.access_level | lower] }}"
       validate_certs: false
       status_code: [201, 409]
-    loop: "{{ r_explicit_groups.results }}"
+    loop: "{{ r_groups.results }}"
     when:
     - item.status == 200
     - item.json is defined
     loop_control:
       label: "{{ item.item.name }} ({{ item.item.access_level }})"
-
-# ==================================================================
-# Add user to groups based on default access levels
-# This matches the behavior of ocp4_workload_gitlab's
-# ocp4_workload_gitlab_user_default_access_levels
-# ==================================================================
-
-- name: Add user to groups based on default access levels
-  when: ocp4_workload_tenant_gitlab_user_default_access_levels | length > 0
-  block:
-  - name: Get all groups from GitLab
-    ansible.builtin.uri:
-      url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups?per_page=100"
-      method: GET
-      headers:
-        PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
-      validate_certs: false
-      status_code: 200
-    register: r_all_groups
-
-  - name: Build list of groups matching default access levels
-    ansible.builtin.set_fact:
-      _matching_groups: >-
-        {{
-          r_all_groups.json
-          | selectattr('name', 'defined')
-          | rejectattr('path', 'equalto', ocp4_workload_tenant_gitlab_username)
-          | list
-        }}
-
-  # Note: In the core_workloads gitlab role, groups have an access_level field
-  # that determines which users join them. In this tenant role, we need to
-  # infer this from the group metadata or use a different approach.
-  # For now, we'll check if the group description or name contains the access level.
-  # This is a simplification - you may want to use labels or a naming convention.
-
-  - name: Add user to matching groups
-    ansible.builtin.uri:
-      url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.id }}/members"
-      method: POST
-      headers:
-        PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
-        Content-Type: "application/json"
-      body_format: json
-      body:
-        user_id: "{{ _ocp4_workload_tenant_gitlab_user_id }}"
-        access_level: "{{ _gitlab_access_level_map[access_level] }}"
-      validate_certs: false
-      status_code: [201, 409]
-    loop: "{{ _matching_groups }}"
-    loop_control:
-      label: "{{ item.path }} ({{ access_level }})"
-    vars:
-      # Determine the access level to grant based on group metadata
-      # This assumes the group has a description or custom_attributes
-      # that indicate the intended access level for auto-assignment.
-      # For this implementation, we'll grant the first matching access level.
-      access_level: "{{ ocp4_workload_tenant_gitlab_user_default_access_levels[0] }}"
-    when:
-    # Only add to groups that haven't been explicitly assigned
-    - item.path not in (ocp4_workload_tenant_gitlab_user_groups | map(attribute='name') | list)
-    # Skip the user's personal namespace
-    - item.path != ocp4_workload_tenant_gitlab_username
