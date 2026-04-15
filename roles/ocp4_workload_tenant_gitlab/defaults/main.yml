@@ -1,0 +1,49 @@
+---
+# Cluster connection
+ocp4_workload_tenant_gitlab_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_gitlab_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# GitLab configuration - where the shared GitLab instance is deployed
+ocp4_workload_tenant_gitlab_namespace: gitlab
+ocp4_workload_tenant_gitlab_route_name: gitlab
+
+# Authentication mode: native or keycloak
+# - native: Create user with password in GitLab
+# - keycloak: Link to existing Keycloak user (user must exist in Keycloak)
+ocp4_workload_tenant_gitlab_auth_mode: native
+
+# User configuration
+ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
+ocp4_workload_tenant_gitlab_password: "{{ common_password | default('') }}"
+ocp4_workload_tenant_gitlab_email: "{{ ocp4_workload_tenant_gitlab_username }}@demo.redhat.com"
+
+# Keycloak configuration (only used when auth_mode is keycloak)
+ocp4_workload_tenant_gitlab_keycloak_namespace: keycloak
+ocp4_workload_tenant_gitlab_keycloak_realm: sso
+
+# User's personal group configuration
+# A group named after the username will be created to hold user's repositories
+ocp4_workload_tenant_gitlab_user_group_visibility: private  # public, internal, or private
+
+# User's personal repositories to import
+# These will be imported into the user's personal group
+ocp4_workload_tenant_gitlab_user_repositories: []
+# Example:
+# - name: my-app
+#   url: https://github.com/example/my-app.git
+#   visibility: private  # public, internal, or private
+
+# Shared groups to add user to
+# Each entry specifies a group path and the access level for the user
+# The group must already exist (created by ocp4_workload_gitlab)
+ocp4_workload_tenant_gitlab_user_groups: []
+# Example:
+# - path: developers
+#   access_level: developer  # guest, reporter, developer, maintainer, owner
+
+# Default access levels - if set, user will be added to all existing groups
+# with these access levels. This matches the behavior of the core_workloads
+# gitlab role's ocp4_workload_gitlab_user_default_access_levels.
+# Leave empty to only use explicit group assignments from user_groups above.
+ocp4_workload_tenant_gitlab_user_default_access_levels: []
+# Example: ["developer"]
