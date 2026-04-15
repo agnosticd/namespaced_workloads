@@ -20,7 +20,7 @@
   block:
   - name: Get group info for explicit assignments
     ansible.builtin.uri:
-      url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.path }}"
+      url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.name }}"
       method: GET
       headers:
         PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
@@ -28,7 +28,7 @@
       status_code: [200, 404]
     loop: "{{ ocp4_workload_tenant_gitlab_user_groups }}"
     loop_control:
-      label: "{{ item.path }}"
+      label: "{{ item.name }}"
     register: r_explicit_groups
 
   - name: Add user to explicit groups
@@ -49,7 +49,7 @@
     - item.status == 200
     - item.json is defined
     loop_control:
-      label: "{{ item.item.path }} ({{ item.item.access_level }})"
+      label: "{{ item.item.name }} ({{ item.item.access_level }})"
 
 # ==================================================================
 # Add user to groups based on default access levels
@@ -110,6 +110,6 @@
       access_level: "{{ ocp4_workload_tenant_gitlab_user_default_access_levels[0] }}"
     when:
     # Only add to groups that haven't been explicitly assigned
-    - item.path not in (ocp4_workload_tenant_gitlab_user_groups | map(attribute='path') | list)
-    # Skip the user's personal group
+    - item.path not in (ocp4_workload_tenant_gitlab_user_groups | map(attribute='name') | list)
+    # Skip the user's personal namespace
     - item.path != ocp4_workload_tenant_gitlab_username

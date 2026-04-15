@@ -66,9 +66,9 @@ In Keycloak mode, the role links to an existing Keycloak user:
 
       # Add user to shared groups
       ocp4_workload_tenant_gitlab_user_groups:
-      - path: developers
+      - name: developers
         access_level: developer
-      - path: workshop-participants
+      - name: workshop-participants
         access_level: reporter
 ----
 
