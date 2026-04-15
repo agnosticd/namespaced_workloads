@@ -48,7 +48,10 @@
 - name: Set RHACS connection facts
   ansible.builtin.set_fact:
     _ocp4_workload_tenant_rhacs_admin_password: "{{ r_acs_password.resources[0].data.password | b64decode }}"
-    _ocp4_workload_tenant_rhacs_auth_provider_id: "{{ r_acs_auth_provider.resources[0].data.authProviderId | b64decode }}"
+    _ocp4_workload_tenant_rhacs_auth_provider_id: >-
+      {{ (r_acs_auth_provider.resources[0].data.authProviderId
+        | default(r_acs_auth_provider.resources[0].data.openshiftAuthProviderId))
+        | b64decode }}
     _ocp4_workload_tenant_rhacs_central_route: "https://{{ r_central_route.resources[0].spec.host }}"
 
 - name: Get current RHACS groups
