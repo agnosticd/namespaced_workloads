@@ -21,12 +21,9 @@ ocp4_workload_tenant_gitlab_email: "{{ ocp4_workload_tenant_gitlab_username }}@d
 ocp4_workload_tenant_gitlab_keycloak_namespace: keycloak
 ocp4_workload_tenant_gitlab_keycloak_realm: sso
 
-# User's personal group configuration
-# A group named after the username will be created to hold user's repositories
-ocp4_workload_tenant_gitlab_user_group_visibility: private  # public, internal, or private
-
 # User's personal repositories to import
-# These will be imported into the user's personal group
+# These will be imported into the user's personal namespace (auto-created by GitLab)
+# The user is automatically the owner of their personal namespace
 ocp4_workload_tenant_gitlab_user_repositories: []
 # Example:
 # - name: my-app
