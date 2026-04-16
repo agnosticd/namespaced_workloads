@@ -1,0 +1,119 @@
+---
+# Create a GitLab user linked to Keycloak (OIDC provider)
+
+- name: Get Keycloak route
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: keycloak
+    namespace: "{{ ocp4_workload_tenant_gitlab_keycloak_namespace }}"
+  register: r_keycloak_route
+  retries: 10
+  delay: 30
+  until:
+  - r_keycloak_route.resources is defined
+  - r_keycloak_route.resources | length > 0
+
+- name: Set Keycloak URL
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_keycloak_url: "https://{{ r_keycloak_route.resources[0].spec.host }}"
+
+- name: Get Keycloak admin credentials
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: keycloak-initial-admin
+    namespace: "{{ ocp4_workload_tenant_gitlab_keycloak_namespace }}"
+  register: r_keycloak_admin
+  retries: 10
+  delay: 30
+  until:
+  - r_keycloak_admin.resources is defined
+  - r_keycloak_admin.resources | length > 0
+
+- name: Set Keycloak admin credentials
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_keycloak_admin_user: "{{ r_keycloak_admin.resources[0].data.username | b64decode }}"
+    _ocp4_workload_tenant_gitlab_keycloak_admin_password: "{{ r_keycloak_admin.resources[0].data.password | b64decode }}"
+
+- name: Get Keycloak admin access token
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_keycloak_url }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ _ocp4_workload_tenant_gitlab_keycloak_admin_user }}"
+      password: "{{ _ocp4_workload_tenant_gitlab_keycloak_admin_password }}"
+    validate_certs: false
+    status_code: 200
+  register: r_keycloak_token
+
+- name: Get user from Keycloak realm
+  ansible.builtin.uri:
+    url: >-
+      {{ _ocp4_workload_tenant_gitlab_keycloak_url }}/admin/realms/{{
+      ocp4_workload_tenant_gitlab_keycloak_realm }}/users?username={{
+      ocp4_workload_tenant_gitlab_username }}
+    method: GET
+    headers:
+      Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+    validate_certs: false
+    status_code: 200
+  register: r_keycloak_user
+
+- name: Verify user exists in Keycloak
+  ansible.builtin.assert:
+    that:
+    - r_keycloak_user.json | length > 0
+    quiet: true
+    fail_msg: >-
+      User {{ ocp4_workload_tenant_gitlab_username }} not found in Keycloak realm {{ ocp4_workload_tenant_gitlab_keycloak_realm }}.
+      In Keycloak mode, the user must already exist in Keycloak.
+
+- name: Set Keycloak user info
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_keycloak_user: "{{ r_keycloak_user.json[0] }}"
+
+- name: Create user in GitLab with OIDC provider linkage
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/users"
+    method: POST
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      email: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.email }}"
+      username: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.username }}"
+      name: >-
+        {{ _ocp4_workload_tenant_gitlab_keycloak_user.firstName | default('') }}
+        {{ _ocp4_workload_tenant_gitlab_keycloak_user.lastName | default('') }}
+      extern_uid: "{{ _ocp4_workload_tenant_gitlab_keycloak_user.username }}"
+      provider: "openid_connect"
+      force_random_password: true
+      skip_confirmation: true
+    validate_certs: false
+    status_code: [201, 409]
+  register: r_create_user
+
+- name: Get user ID
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/users?username={{ ocp4_workload_tenant_gitlab_username }}"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    status_code: 200
+  register: r_user_info
+
+- name: Set user ID fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_user_id: "{{ r_user_info.json[0].id }}"

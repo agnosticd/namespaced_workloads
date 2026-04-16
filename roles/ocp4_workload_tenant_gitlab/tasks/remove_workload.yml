@@ -1,0 +1,135 @@
+---
+# ==================================================================
+# Get GitLab instance information
+# ==================================================================
+
+- name: Get GitLab route
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ ocp4_workload_tenant_gitlab_route_name }}"
+    namespace: "{{ ocp4_workload_tenant_gitlab_namespace }}"
+  register: r_gitlab_route
+  failed_when: false
+
+- name: Skip removal if GitLab instance not found
+  when:
+  - r_gitlab_route.resources is not defined or
+    r_gitlab_route.resources | length == 0
+  block:
+  - name: GitLab instance not found
+    ansible.builtin.debug:
+      msg: "GitLab instance not found in namespace {{ ocp4_workload_tenant_gitlab_namespace }}. Skipping removal."
+
+  - name: End play
+    ansible.builtin.meta: end_host
+
+- name: Set GitLab URL fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_url: "https://{{ r_gitlab_route.resources[0].spec.host }}"
+
+- name: Get GitLab automation token
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: root-user-personal-token
+    namespace: "{{ ocp4_workload_tenant_gitlab_namespace }}"
+  register: r_gitlab_token
+  failed_when: false
+
+- name: Skip removal if GitLab token not found
+  when:
+  - r_gitlab_token.resources is not defined or
+    r_gitlab_token.resources | length == 0
+  block:
+  - name: GitLab token not found
+    ansible.builtin.debug:
+      msg: "GitLab automation token not found. Skipping removal."
+
+  - name: End play
+    ansible.builtin.meta: end_host
+
+- name: Set GitLab automation token fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_token: "{{ r_gitlab_token.resources[0].data.token | b64decode }}"
+
+# ==================================================================
+# Get user ID
+# ==================================================================
+
+- name: Get user info
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/users?username={{ ocp4_workload_tenant_gitlab_username }}"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    status_code: [200, 404]
+  register: r_user_info
+  failed_when: false
+
+- name: Skip removal if user not found
+  when:
+  - r_user_info.status == 404 or
+    r_user_info.json | length == 0
+  block:
+  - name: User not found
+    ansible.builtin.debug:
+      msg: "User {{ ocp4_workload_tenant_gitlab_username }} not found in GitLab. Skipping removal."
+
+  - name: End play
+    ansible.builtin.meta: end_host
+
+- name: Set user ID fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_user_id: "{{ r_user_info.json[0].id }}"
+
+# ==================================================================
+# Delete user's personal group (cascades to repositories)
+# ==================================================================
+
+- name: Get user's personal group
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ ocp4_workload_tenant_gitlab_username }}"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    status_code: [200, 404]
+  register: r_group_info
+  failed_when: false
+
+- name: Delete user's personal group
+  when:
+  - r_group_info.status == 200
+  - r_group_info.json is defined
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ r_group_info.json.id }}"
+    method: DELETE
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    status_code: [202, 204, 404]
+  register: r_delete_group
+  failed_when: false
+
+# ==================================================================
+# Delete user
+# ==================================================================
+
+- name: Delete user from GitLab
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/users/{{ _ocp4_workload_tenant_gitlab_user_id }}"
+    method: DELETE
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    status_code: [204, 404]
+  register: r_delete_user
+  failed_when: false

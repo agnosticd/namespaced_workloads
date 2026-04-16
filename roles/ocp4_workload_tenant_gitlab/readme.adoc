@@ -1,0 +1,380 @@
+= ocp4_workload_tenant_gitlab - Create a GitLab tenant user on a shared instance
+
+== Role overview
+
+This role creates a tenant user on an existing shared GitLab instance deployed via `ocp4_workload_gitlab`. It supports both native (username/password) and Keycloak (SSO) authentication modes.
+
+* Creates a GitLab user based on authentication mode (native or Keycloak)
+* Creates a personal group for the user (named after the username)
+* Imports repositories into the user's personal group
+* Adds user to shared groups based on access levels
+
+== Requirements
+
+* GitLab instance deployed via `ocp4_workload_gitlab` in the target cluster
+* GitLab must have the `root-user-personal-token` secret available
+* For Keycloak mode: User must already exist in Keycloak realm
+
+== The defaults variable file
+
+See link:defaults/main.yml[defaults/main.yml] for all available variables.
+
+== Authentication Modes
+
+=== Native Mode
+
+In native mode, the role creates a user with username/password authentication:
+
+* User is created via GitLab API with password
+* User can log in directly to GitLab with credentials
+* Password must be provided via `ocp4_workload_tenant_gitlab_password`
+
+=== Keycloak Mode
+
+In Keycloak mode, the role links to an existing Keycloak user:
+
+* User must already exist in Keycloak realm
+* User is created in GitLab with OIDC provider linkage
+* User authenticates via Keycloak SSO
+* No password needed (uses Keycloak authentication)
+
+== Usage Examples
+
+=== Example 1: Native Authentication with Repositories
+
+[source,yaml]
+----
+- name: Create GitLab tenant user
+  hosts: localhost
+  tasks:
+  - name: Include tenant_gitlab role
+    include_role:
+      name: agnosticd.namespaced_workloads.ocp4_workload_tenant_gitlab
+    vars:
+      ocp4_workload_tenant_gitlab_auth_mode: native
+      ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
+      ocp4_workload_tenant_gitlab_password: "{{ common_password }}"
+
+      # User's personal repositories
+      ocp4_workload_tenant_gitlab_user_repositories:
+      - name: my-app
+        url: https://github.com/example/my-app.git
+        visibility: private
+      - name: workshop-exercises
+        url: https://github.com/example/exercises.git
+        visibility: public
+
+      # Add user to shared groups
+      ocp4_workload_tenant_gitlab_user_groups:
+      - name: developers
+        access_level: developer
+      - name: workshop-participants
+        access_level: reporter
+----
+
+=== Example 2: Keycloak Authentication
+
+[source,yaml]
+----
+- name: Create GitLab tenant user with Keycloak
+  hosts: localhost
+  tasks:
+  - name: Include tenant_gitlab role
+    include_role:
+      name: agnosticd.namespaced_workloads.ocp4_workload_tenant_gitlab
+    vars:
+      ocp4_workload_tenant_gitlab_auth_mode: keycloak
+      ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
+      ocp4_workload_tenant_gitlab_keycloak_namespace: keycloak
+      ocp4_workload_tenant_gitlab_keycloak_realm: sso
+
+      # User's repositories
+      ocp4_workload_tenant_gitlab_user_repositories:
+      - name: lab-materials
+        url: https://github.com/example/lab.git
+        visibility: internal
+----
+
+=== Example 3: Using Default Access Levels
+
+[source,yaml]
+----
+- name: Create GitLab user with default access levels
+  hosts: localhost
+  tasks:
+  - name: Include tenant_gitlab role
+    include_role:
+      name: agnosticd.namespaced_workloads.ocp4_workload_tenant_gitlab
+    vars:
+      ocp4_workload_tenant_gitlab_auth_mode: native
+      ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
+      ocp4_workload_tenant_gitlab_password: "{{ common_password }}"
+----
+
+=== Example 4: In AgnosticD v2 Catalog
+
+[source,yaml]
+----
+# common.yaml
+config: namespace
+
+workloads:
+- agnosticd.namespaced_workloads.ocp4_workload_tenant_keycloak_user
+- agnosticd.namespaced_workloads.ocp4_workload_tenant_namespace
+- agnosticd.namespaced_workloads.ocp4_workload_tenant_gitlab
+
+remove_workloads:
+- agnosticd.namespaced_workloads.ocp4_workload_tenant_gitlab
+- agnosticd.namespaced_workloads.ocp4_workload_tenant_namespace
+- agnosticd.namespaced_workloads.ocp4_workload_tenant_keycloak_user
+
+# Variables
+ocp4_workload_tenant_gitlab_auth_mode: keycloak
+ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
+
+ocp4_workload_tenant_gitlab_user_repositories:
+- name: modern-app-dev
+  url: https://github.com/redhat-gpte-devopsautomation/modern-app-dev.git
+  visibility: private
+
+ocp4_workload_tenant_gitlab_user_groups:
+- path: developers
+  access_level: developer
+----
+
+== Role Variables
+
+=== Required Variables
+
+[cols="1,1,3"]
+|===
+|Variable |Default |Description
+
+|ocp4_workload_tenant_gitlab_openshift_api_url
+|`{{ sandbox_openshift_api_url }}`
+|OpenShift API URL
+
+|ocp4_workload_tenant_gitlab_openshift_api_token
+|`{{ cluster_admin_agnosticd_sa_token \| trim }}`
+|Cluster admin API token
+
+|ocp4_workload_tenant_gitlab_username
+|`user-{{ guid }}`
+|Username to create in GitLab
+
+|ocp4_workload_tenant_gitlab_password
+|`{{ common_password \| default('') }}`
+|Password for native auth (required if auth_mode is native)
+|===
+
+=== GitLab Configuration
+
+[cols="1,1,3"]
+|===
+|Variable |Default |Description
+
+|ocp4_workload_tenant_gitlab_namespace
+|gitlab
+|Namespace where GitLab is deployed
+
+|ocp4_workload_tenant_gitlab_route_name
+|gitlab
+|Name of the GitLab route
+
+|ocp4_workload_tenant_gitlab_auth_mode
+|native
+|Authentication mode: `native` or `keycloak`
+
+|ocp4_workload_tenant_gitlab_email
+|`{{ username }}@demo.redhat.com`
+|Email address for the user
+|===
+
+=== User Group Configuration
+
+[cols="1,1,3"]
+|===
+|Variable |Default |Description
+
+|ocp4_workload_tenant_gitlab_user_group_visibility
+|private
+|Visibility of user's personal group: `public`, `internal`, or `private`
+|===
+
+=== Repository Import
+
+[cols="1,1,3"]
+|===
+|Variable |Default |Description
+
+|ocp4_workload_tenant_gitlab_user_repositories
+|[]
+|List of repositories to import into user's personal group. Each entry requires `name`, `url`, and `visibility`.
+|===
+
+Example:
+[source,yaml]
+----
+ocp4_workload_tenant_gitlab_user_repositories:
+- name: my-app
+  url: https://github.com/example/my-app.git
+  visibility: private
+- name: workshop-labs
+  url: https://github.com/example/labs.git
+  visibility: public
+----
+
+=== Group Assignment
+
+[cols="1,1,3"]
+|===
+|Variable |Default |Description
+
+|ocp4_workload_tenant_gitlab_user_groups
+|[]
+|List of shared groups to add user to. Each entry requires `name` and `access_level`.
+|===
+
+==== Access Levels
+
+* `guest` (10): Can view but cannot push
+* `reporter` (20): Can view and create issues
+* `developer` (30): Can push to non-protected branches
+* `maintainer` (40): Can push to protected branches, manage group
+* `owner` (50): Full admin access to the group
+
+Example:
+[source,yaml]
+----
+ocp4_workload_tenant_gitlab_user_groups:
+- name: developers
+  access_level: developer
+- name: workshop-participants
+  access_level: reporter
+----
+
+=== Keycloak Configuration (Keycloak mode only)
+
+[cols="1,1,3"]
+|===
+|Variable |Default |Description
+
+|ocp4_workload_tenant_gitlab_keycloak_namespace
+|keycloak
+|Namespace where Keycloak is deployed
+
+|ocp4_workload_tenant_gitlab_keycloak_realm
+|sso
+|Keycloak realm containing the user
+|===
+
+== What This Role Does
+
+=== Provision (`ACTION=provision`)
+
+1. **Discovers GitLab instance** - Gets GitLab route and automation token
+2. **Creates user** - Based on auth mode:
+   * Native: Creates user with password
+   * Keycloak: Creates user with OIDC linkage
+3. **Creates personal group** - Creates group named after username
+4. **Imports repositories** - Imports specified repos into user's group
+5. **Assigns to groups** - Adds user to shared groups based on access levels
+6. **Outputs user data** - Provides GitLab URL, username, password, and group info
+
+=== Destroy (`ACTION=destroy`)
+
+1. **Deletes personal group** - Removes user's group (cascades to repositories)
+2. **Deletes user** - Removes user from GitLab
+
+== Output Variables
+
+The role outputs the following data via `agnosticd_user_info`:
+
+[source,yaml]
+----
+gitlab_url: "https://gitlab-gitlab.apps.cluster.example.com"
+gitlab_username: "user-abc123"
+gitlab_password: "openshift"
+gitlab_user_group: "user-abc123"
+----
+
+== User's Personal Group
+
+Each user gets a personal group:
+
+* **Name**: Same as username
+* **Path**: Same as username
+* **Visibility**: Configurable via `ocp4_workload_tenant_gitlab_user_group_visibility`
+* **Access**: User is added as Owner (access level 50)
+* **Repositories**: All user repositories are imported here
+
+Example: User `user-abc123` gets group `user-abc123` with URL `https://gitlab/user-abc123`
+
+== Shared Group Assignment
+
+Users can be assigned to shared groups in two ways:
+
+=== Explicit Assignment
+
+Specify exact groups and access levels:
+
+[source,yaml]
+----
+ocp4_workload_tenant_gitlab_user_groups:
+- path: developers
+  access_level: developer
+- path: workshop-participants
+  access_level: maintainer
+----
+
+== Troubleshooting
+
+=== User creation fails with 409 conflict
+
+**Solution**: User already exists. This is normal and expected if the role is re-run.
+
+=== Repository import takes a long time
+
+**Solution**: Large repositories can take time to import. The role waits up to 10 minutes (60 retries × 10 seconds) for imports to complete.
+
+[source,bash]
+----
+# Check import status
+GITLAB_URL=$(oc get route gitlab -n gitlab -o jsonpath='{.spec.host}')
+GITLAB_TOKEN=$(oc get secret root-user-personal-token -n gitlab -o jsonpath='{.data.token}' | base64 -d)
+
+curl -k -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "https://${GITLAB_URL}/api/v4/projects" | \
+  jq '.[] | {name: .name, import_status: .import_status}'
+----
+
+=== Keycloak mode fails - user not found
+
+**Solution**: In Keycloak mode, the user must already exist in the Keycloak realm before running this role. Use `ocp4_workload_tenant_keycloak_user` role first.
+
+=== Cannot add user to shared group
+
+**Solution**: Verify the group exists and the path is correct:
+
+[source,bash]
+----
+curl -k -H "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "https://${GITLAB_URL}/api/v4/groups" | \
+  jq '.[] | {path: .path, name: .name}'
+----
+
+== Prerequisites
+
+* GitLab deployed via `ocp4_workload_gitlab` with:
+  * `root-user-personal-token` secret created
+  * GitLab route accessible
+* For Keycloak mode:
+  * Keycloak deployed via `ocp4_workload_authentication_keycloak`
+  * User already exists in Keycloak realm
+  * GitLab configured with Keycloak OIDC provider
+
+== License
+
+GPL-3.0-only
+
+== Author Information
+
+AgnosticD Team

@@ -1,0 +1,93 @@
+---
+# ==================================================================
+# Get GitLab instance information
+# ==================================================================
+
+- name: Get GitLab route
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
+    validate_certs: false
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ ocp4_workload_tenant_gitlab_route_name }}"
+    namespace: "{{ ocp4_workload_tenant_gitlab_namespace }}"
+  register: r_gitlab_route
+  retries: 10
+  delay: 30
+  until:
+  - r_gitlab_route.resources is defined
+  - r_gitlab_route.resources | length > 0
+
+- name: Set GitLab URL fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_url: "https://{{ r_gitlab_route.resources[0].spec.host }}"
+
+- name: Get GitLab automation token
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: root-user-personal-token
+    namespace: "{{ ocp4_workload_tenant_gitlab_namespace }}"
+  register: r_gitlab_token
+  retries: 10
+  delay: 10
+  until:
+  - r_gitlab_token.resources is defined
+  - r_gitlab_token.resources | length > 0
+
+- name: Set GitLab automation token fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_token: "{{ r_gitlab_token.resources[0].data.token | b64decode }}"
+
+# ==================================================================
+# Create GitLab user based on auth mode
+# ==================================================================
+
+- name: Create user in native mode
+  when: ocp4_workload_tenant_gitlab_auth_mode == 'native'
+  ansible.builtin.include_tasks: create_user_native.yml
+
+- name: Create user in Keycloak mode
+  when: ocp4_workload_tenant_gitlab_auth_mode == 'keycloak'
+  ansible.builtin.include_tasks: create_user_keycloak.yml
+
+# ==================================================================
+# Create user's personal group and import repositories
+# ==================================================================
+
+- name: Create user's personal group and import repositories
+  ansible.builtin.include_tasks: create_user_group.yml
+
+# ==================================================================
+# Add user to shared groups
+# ==================================================================
+
+- name: Add user to shared groups
+  when: ocp4_workload_tenant_gitlab_user_groups | length > 0
+  ansible.builtin.include_tasks: add_user_to_groups.yml
+
+# ==================================================================
+# Save user information
+# ==================================================================
+
+# NOTE: agnosticd_user_info disabled for standalone testing
+# - name: Save GitLab user information
+#   agnosticd.core.agnosticd_user_info:
+#     data:
+#       gitlab_url: "{{ _ocp4_workload_tenant_gitlab_url }}"
+#       gitlab_username: "{{ ocp4_workload_tenant_gitlab_username }}"
+#       gitlab_password: "{{ ocp4_workload_tenant_gitlab_password }}"
+#       gitlab_user_group: "{{ ocp4_workload_tenant_gitlab_username }}"
+
+- name: Display GitLab user information
+  ansible.builtin.debug:
+    msg:
+    - "GitLab user created successfully!"
+    - "URL: {{ _ocp4_workload_tenant_gitlab_url }}"
+    - "Username: {{ ocp4_workload_tenant_gitlab_username }}"
+    - "Password: {{ ocp4_workload_tenant_gitlab_password }}"
+    - "User Group: {{ ocp4_workload_tenant_gitlab_username }}"

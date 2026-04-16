@@ -1,0 +1,41 @@
+---
+# Cluster connection
+ocp4_workload_tenant_gitlab_openshift_api_url: "{{ sandbox_openshift_api_url }}"
+ocp4_workload_tenant_gitlab_openshift_api_token: "{{ cluster_admin_agnosticd_sa_token | trim }}"
+
+# GitLab configuration - where the shared GitLab instance is deployed
+ocp4_workload_tenant_gitlab_namespace: gitlab
+ocp4_workload_tenant_gitlab_route_name: gitlab
+
+# Authentication mode: native or keycloak
+# - native: Create user with password in GitLab
+# - keycloak: Link to existing Keycloak user (user must exist in Keycloak)
+ocp4_workload_tenant_gitlab_auth_mode: native
+
+# User configuration
+ocp4_workload_tenant_gitlab_username: "user-{{ guid }}"
+ocp4_workload_tenant_gitlab_password: "{{ common_password | default('') }}"
+ocp4_workload_tenant_gitlab_email: "{{ ocp4_workload_tenant_gitlab_username }}@demo.redhat.com"
+
+# Keycloak configuration (only used when auth_mode is keycloak)
+ocp4_workload_tenant_gitlab_keycloak_namespace: keycloak
+ocp4_workload_tenant_gitlab_keycloak_realm: sso
+
+# User's personal repositories to import
+# These will be imported into the user's personal namespace (auto-created by GitLab)
+# The user is automatically the owner of their personal namespace
+ocp4_workload_tenant_gitlab_user_repositories: []
+# Example:
+# - name: my-app
+#   url: https://github.com/example/my-app.git
+#   visibility: private  # public, internal, or private
+
+# Shared groups to add user to
+# Each entry specifies a group name and the access level the user will have in that group
+# The groups must already exist (created by ocp4_workload_gitlab role)
+ocp4_workload_tenant_gitlab_user_groups: []
+# Example:
+# - name: developers
+#   access_level: developer  # guest, reporter, developer, maintainer, owner
+# - name: maintainers
+#   access_level: maintainer

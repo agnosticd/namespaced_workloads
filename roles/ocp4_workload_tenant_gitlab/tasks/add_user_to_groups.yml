@@ -1,0 +1,52 @@
+---
+# Add user to shared groups with specified access levels
+
+# Map access level names to numeric values
+- name: Set access level mapping
+  ansible.builtin.set_fact:
+    _gitlab_access_level_map:
+      guest: 10
+      reporter: 20
+      developer: 30
+      maintainer: 40
+      owner: 50
+
+# ==================================================================
+# Add user to explicitly defined groups
+# ==================================================================
+
+- name: Add user to shared groups
+  when: ocp4_workload_tenant_gitlab_user_groups | length > 0
+  block:
+  - name: Get group info
+    ansible.builtin.uri:
+      url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.name }}"
+      method: GET
+      headers:
+        PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+      validate_certs: false
+      status_code: [200, 404]
+    loop: "{{ ocp4_workload_tenant_gitlab_user_groups }}"
+    loop_control:
+      label: "{{ item.name }}"
+    register: r_groups
+
+  - name: Add user to groups
+    ansible.builtin.uri:
+      url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/groups/{{ item.json.id }}/members"
+      method: POST
+      headers:
+        PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+        Content-Type: "application/json"
+      body_format: json
+      body:
+        user_id: "{{ _ocp4_workload_tenant_gitlab_user_id }}"
+        access_level: "{{ _gitlab_access_level_map[item.item.access_level | lower] }}"
+      validate_certs: false
+      status_code: [201, 409]
+    loop: "{{ r_groups.results }}"
+    when:
+    - item.status == 200
+    - item.json is defined
+    loop_control:
+      label: "{{ item.item.name }} ({{ item.item.access_level }})"

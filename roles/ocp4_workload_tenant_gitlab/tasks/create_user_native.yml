@@ -1,0 +1,42 @@
+---
+# Create a GitLab user with native authentication (username/password)
+
+- name: Validate password is set for native auth
+  ansible.builtin.assert:
+    that:
+    - ocp4_workload_tenant_gitlab_password | length > 0
+    quiet: true
+    fail_msg: >-
+      ocp4_workload_tenant_gitlab_password must be set when using native authentication mode.
+
+- name: Create user in GitLab (native auth)
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/users"
+    method: POST
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      email: "{{ ocp4_workload_tenant_gitlab_email }}"
+      username: "{{ ocp4_workload_tenant_gitlab_username }}"
+      name: "{{ ocp4_workload_tenant_gitlab_username | title }}"
+      password: "{{ ocp4_workload_tenant_gitlab_password }}"
+      skip_confirmation: true
+    validate_certs: false
+    status_code: [201, 409]
+  register: r_create_user
+
+- name: Get user ID
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/users?username={{ ocp4_workload_tenant_gitlab_username }}"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    status_code: 200
+  register: r_user_info
+
+- name: Set user ID fact
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitlab_user_id: "{{ r_user_info.json[0].id }}"
