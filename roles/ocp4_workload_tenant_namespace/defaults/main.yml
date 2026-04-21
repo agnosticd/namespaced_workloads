@@ -30,6 +30,7 @@ ocp4_workload_tenant_namespace_default_metadata: {}
 #     limits.memory: 8Gi
 #     requests.memory: 8Gi
 #     requests.storage: 20Gi
+#     pods: "50"          # optional — caps total pod count across all namespaces
 #   limit_range:
 #     default:
 #       cpu: "2"
@@ -56,6 +57,11 @@ ocp4_workload_tenant_namespace_use_cluster_quota: true
 # Used as ClusterResourceQuota hard limits when use_cluster_quota is true,
 # or as the default per-namespace ResourceQuota when use_cluster_quota is false
 # and no per-namespace quota is defined in the suffix entry.
+#
+# Any valid Kubernetes ResourceQuota hard limit key is accepted, including:
+#   pods — caps the total number of pods across all tenant namespaces.
+#   Recommended for multi-tenant clusters to prevent runaway pod creation.
+#   Example: pods: "50"
 ocp4_workload_tenant_namespace_default_quota:
   limits.cpu: "4"
   requests.cpu: "4"
