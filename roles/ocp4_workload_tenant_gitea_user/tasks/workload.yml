@@ -120,7 +120,7 @@
     register: r_migrate_result
     until: r_migrate_result.status == 201
     retries: 24
-    delay: 5      
+    delay: 5
     loop: "{{ r_gitea_repos.results }}"
     loop_control:
       label: "{{ item.item.name }}"
