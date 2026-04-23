@@ -26,43 +26,16 @@
     _ocp4_workload_tenant_gitea_user_route: >-
       {{ r_gitea.resources[0].status.giteaRoute }}
 
-- name: Check if Gitea user exists
-  ansible.builtin.uri:
-    url: >-
-      {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ ocp4_workload_tenant_gitea_user_username }}
-    method: GET
-    url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
-    url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
-    force_basic_auth: true
-    validate_certs: false
-    status_code:
-    - 200
-    - 404
-  register: r_gitea_user
-
-- name: Create Gitea user
-  when: r_gitea_user.status == 404
-  ansible.builtin.uri:
-    url: "{{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/admin/users"
-    method: POST
-    url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
-    url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
-    force_basic_auth: true
-    body_format: json
-    body:
-      email: "{{ ocp4_workload_tenant_gitea_user_email }}"
-      login_name: "{{ ocp4_workload_tenant_gitea_user_username }}"
-      must_change_password: false
-      password: "{{ ocp4_workload_tenant_gitea_user_password }}"
-      username: "{{ ocp4_workload_tenant_gitea_user_username }}"
-    validate_certs: false
-    status_code:
-    - 201
-
-- name: Migrate repositories
-  when: ocp4_workload_tenant_gitea_user_repositories | length > 0
+- name: Gitea API operations with semaphore
   block:
-  - name: Get Gitea user uid
+  - name: Initialize semaphore tracking
+    ansible.builtin.set_fact:
+      _ocp4_workload_tenant_gitea_user_lock_acquired: false
+
+  - name: Acquire Gitea operations semaphore
+    ansible.builtin.include_tasks: acquire_semaphore.yml
+
+  - name: Check if Gitea user exists
     ansible.builtin.uri:
       url: >-
         {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ ocp4_workload_tenant_gitea_user_username }}
@@ -71,59 +44,108 @@
       url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
       force_basic_auth: true
       validate_certs: false
-    register: r_gitea_user_info
-
-  - name: Check if repositories already exist
-    ansible.builtin.uri:
-      url: >-
-        {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/{{
-        ocp4_workload_tenant_gitea_user_username }}/{{ item.name }}
-      method: GET
-      url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
-      url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
-      force_basic_auth: true
-      validate_certs: false
       status_code:
       - 200
       - 404
-    register: r_gitea_repos
-    loop: "{{ ocp4_workload_tenant_gitea_user_repositories }}"
-    loop_control:
-      label: "{{ item.name }}"
+    register: r_gitea_user
 
-  - name: Migrate repositories that do not exist yet
-    when: item.status == 404
+  - name: Create Gitea user
+    when: r_gitea_user.status == 404
     ansible.builtin.uri:
-      url: "{{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/migrate"
+      url: "{{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/admin/users"
       method: POST
       url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
       url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
       force_basic_auth: true
       body_format: json
-      body: >-
-        {{
-          {
-            'clone_addr': item.item.repo,
-            'description': '',
-            'issues': false,
-            'milestones': false,
-            'mirror': false,
-            'private': item.item.private | default(false),
-            'repo_name': item.item.name,
-            'uid': r_gitea_user_info.json.id | int
-          }
-        }}
+      body:
+        email: "{{ ocp4_workload_tenant_gitea_user_email }}"
+        login_name: "{{ ocp4_workload_tenant_gitea_user_username }}"
+        must_change_password: false
+        password: "{{ ocp4_workload_tenant_gitea_user_password }}"
+        username: "{{ ocp4_workload_tenant_gitea_user_username }}"
       validate_certs: false
       status_code:
       - 201
-      timeout: 60
-    register: r_migrate_result
-    until: r_migrate_result.status == 201
-    retries: 24
-    delay: 5
-    loop: "{{ r_gitea_repos.results }}"
-    loop_control:
-      label: "{{ item.item.name }}"
+
+  - name: Migrate repositories
+    when: ocp4_workload_tenant_gitea_user_repositories | length > 0
+    block:
+    - name: Get Gitea user uid
+      ansible.builtin.uri:
+        url: >-
+          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ ocp4_workload_tenant_gitea_user_username }}
+        method: GET
+        url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
+        url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
+        force_basic_auth: true
+        validate_certs: false
+      register: r_gitea_user_info
+
+    - name: Check if repositories already exist
+      ansible.builtin.uri:
+        url: >-
+          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/{{
+          ocp4_workload_tenant_gitea_user_username }}/{{ item.name }}
+        method: GET
+        url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
+        url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code:
+        - 200
+        - 404
+      register: r_gitea_repos
+      loop: "{{ ocp4_workload_tenant_gitea_user_repositories }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Migrate repositories that do not exist yet
+      when: item.status == 404
+      ansible.builtin.uri:
+        url: "{{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/migrate"
+        method: POST
+        url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
+        url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
+        force_basic_auth: true
+        body_format: json
+        body: >-
+          {{
+            {
+              'clone_addr': item.item.repo,
+              'description': '',
+              'issues': false,
+              'milestones': false,
+              'mirror': false,
+              'private': item.item.private | default(false),
+              'repo_name': item.item.name,
+              'uid': r_gitea_user_info.json.id | int
+            }
+          }}
+        validate_certs: false
+        status_code:
+        - 201
+        timeout: 60
+      register: r_migrate_result
+      until: r_migrate_result.status == 201
+      retries: 24
+      delay: 5
+      loop: "{{ r_gitea_repos.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+  always:
+  - name: Release Gitea operations semaphore
+    when: _ocp4_workload_tenant_gitea_user_lock_acquired | default(false) | bool
+    kubernetes.core.k8s:
+      host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
+      api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+      validate_certs: false
+      state: absent
+      api_version: v1
+      kind: Secret
+      name: "{{ ocp4_workload_tenant_gitea_user_semaphore_name }}"
+      namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"
 
 - name: Save Gitea user information
   agnosticd.core.agnosticd_user_info:

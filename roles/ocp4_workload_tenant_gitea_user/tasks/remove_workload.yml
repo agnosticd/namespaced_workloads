@@ -13,20 +13,29 @@
 - name: Clean up Gitea user and repositories
   when: r_gitea.resources | length > 0
   block:
-    - name: Validate Gitea admin setup is complete
-      ansible.builtin.assert:
-        that:
-          - r_gitea.resources[0].status.adminSetupComplete | bool
-        fail_msg: Gitea admin setup is not complete yet.
+  - name: Validate Gitea admin setup is complete
+    ansible.builtin.assert:
+      that:
+      - r_gitea.resources[0].status.adminSetupComplete | bool
+      fail_msg: Gitea admin setup is not complete yet.
 
-    - name: Set Gitea connection facts
+  - name: Set Gitea connection facts
+    ansible.builtin.set_fact:
+      _ocp4_workload_tenant_gitea_user_admin_user: >-
+        {{ r_gitea.resources[0].spec.giteaAdminUser }}
+      _ocp4_workload_tenant_gitea_user_admin_password: >-
+        {{ r_gitea.resources[0].status.adminPassword }}
+      _ocp4_workload_tenant_gitea_user_route: >-
+        {{ r_gitea.resources[0].status.giteaRoute }}
+
+  - name: Gitea API operations with semaphore
+    block:
+    - name: Initialize semaphore tracking
       ansible.builtin.set_fact:
-        _ocp4_workload_tenant_gitea_user_admin_user: >-
-          {{ r_gitea.resources[0].spec.giteaAdminUser }}
-        _ocp4_workload_tenant_gitea_user_admin_password: >-
-          {{ r_gitea.resources[0].status.adminPassword }}
-        _ocp4_workload_tenant_gitea_user_route: >-
-          {{ r_gitea.resources[0].status.giteaRoute }}
+        _ocp4_workload_tenant_gitea_user_lock_acquired: false
+
+    - name: Acquire Gitea operations semaphore
+      ansible.builtin.include_tasks: acquire_semaphore.yml
 
     - name: Get all repositories for Gitea user
       ansible.builtin.uri:
@@ -39,7 +48,7 @@
         force_basic_auth: true
         validate_certs: false
         status_code:
-          - 200
+        - 200
       register: r_gitea_user_repos
 
     - name: Delete all repositories for Gitea user
@@ -54,8 +63,8 @@
         force_basic_auth: true
         validate_certs: false
         status_code:
-          - 204
-          - 404
+        - 204
+        - 404
       loop: "{{ r_gitea_user_repos.json.data | default([]) }}"
       loop_control:
         label: "{{ item.name }}"
@@ -71,5 +80,18 @@
         force_basic_auth: true
         validate_certs: false
         status_code:
-          - 204
-          - 404
+        - 204
+        - 404
+
+    always:
+    - name: Release Gitea operations semaphore
+      when: _ocp4_workload_tenant_gitea_user_lock_acquired | default(false) | bool
+      kubernetes.core.k8s:
+        host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
+        api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+        validate_certs: false
+        state: absent
+        api_version: v1
+        kind: Secret
+        name: "{{ ocp4_workload_tenant_gitea_user_semaphore_name }}"
+        namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"

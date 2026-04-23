@@ -23,3 +23,10 @@ ocp4_workload_tenant_gitea_user_repositories: []
 # - name: my-repo
 #   repo: https://github.com/org/my-repo
 #   private: false
+
+# Semaphore for serializing Gitea operations across concurrent runs
+ocp4_workload_tenant_gitea_user_semaphore_name: gitea-operations-lock
+ocp4_workload_tenant_gitea_user_semaphore_retries: 60
+ocp4_workload_tenant_gitea_user_semaphore_delay_min: 5
+ocp4_workload_tenant_gitea_user_semaphore_delay_max: 20
+ocp4_workload_tenant_gitea_user_semaphore_stale_timeout: 600

@@ -1,0 +1,62 @@
+---
+- name: Check for existing operations lock
+  kubernetes.core.k8s_info:
+    host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+    validate_certs: false
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp4_workload_tenant_gitea_user_semaphore_name }}"
+    namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"
+  register: r_existing_lock
+
+- name: Remove stale operations lock
+  when:
+  - r_existing_lock.resources | length > 0
+  - >-
+    (now(utc=true) - (r_existing_lock.resources[0].metadata.annotations['lock-acquired-at']
+    | to_datetime('%Y-%m-%dT%H:%M:%SZ'))).total_seconds()
+    > ocp4_workload_tenant_gitea_user_semaphore_stale_timeout | int
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_gitea_user_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp4_workload_tenant_gitea_user_semaphore_name }}"
+    namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"
+
+# Use k8s API because k8s module would be idempotent. We need to know if creating the semaphore secret fails because it already exists.
+- name: Acquire operations lock
+  ansible.builtin.uri:
+    url: >-
+      {{ ocp4_workload_tenant_gitea_user_openshift_api_url }}/api/v1/namespaces/{{
+      ocp4_workload_tenant_gitea_user_namespace }}/secrets
+    method: POST
+    headers:
+      Authorization: "Bearer {{ ocp4_workload_tenant_gitea_user_openshift_api_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ ocp4_workload_tenant_gitea_user_semaphore_name }}"
+        namespace: "{{ ocp4_workload_tenant_gitea_user_namespace }}"
+        annotations:
+          lock-acquired-at: "{{ now(utc=true).strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+    validate_certs: false
+    status_code:
+    - 201
+    - 409
+  register: r_lock_attempt
+  until: r_lock_attempt.status == 201
+  retries: "{{ ocp4_workload_tenant_gitea_user_semaphore_retries }}"
+  delay: >-
+    {{ range(ocp4_workload_tenant_gitea_user_semaphore_delay_min | int,
+    ocp4_workload_tenant_gitea_user_semaphore_delay_max | int + 1) | random }}
+
+- name: Record lock acquisition
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_gitea_user_lock_acquired: true
