@@ -81,9 +81,45 @@
     status_code: 200
   register: r_rhacs_groupsbatch
 
+- name: Compute API token expiration timestamp
+  when: ocp4_workload_tenant_rhacs_create_api_token | bool
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_rhacs_token_expiration: >-
+      {{
+        '%Y-%m-%dT%H:%M:%SZ'
+        | strftime(lookup('pipe', 'date -u +%s') | int
+          + (ocp4_workload_tenant_rhacs_api_token_expiration_days | int * 86400))
+      }}
+
+- name: Create RHACS API token for user
+  when: ocp4_workload_tenant_rhacs_create_api_token | bool
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_rhacs_central_route }}/v1/apitokens/generate"
+    body:
+      name: "{{ ocp4_workload_tenant_rhacs_username }}"
+      roles:
+      - Analyst
+      expiration: "{{ _ocp4_workload_tenant_rhacs_token_expiration }}"
+    method: POST
+    user: admin
+    password: "{{ _ocp4_workload_tenant_rhacs_admin_password }}"
+    body_format: json
+    force_basic_auth: true
+    validate_certs: false
+    status_code: 200
+  register: r_rhacs_api_token
+  no_log: true
+
 - name: Save user data
   agnosticd.core.agnosticd_user_info:
     data:
       rhacs_username: "{{ ocp4_workload_tenant_rhacs_username }}"
       rhacs_roles: "{{ ocp4_workload_tenant_rhacs_roles | join(', ') }}"
       rhacs_route: "{{ _ocp4_workload_tenant_rhacs_central_route }}"
+
+- name: Save RHACS API token
+  when: ocp4_workload_tenant_rhacs_create_api_token | bool
+  agnosticd.core.agnosticd_user_info:
+    data:
+      rhacs_api_token: "{{ r_rhacs_api_token.json.token }}"
+  no_log: true

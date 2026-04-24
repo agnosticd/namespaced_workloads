@@ -14,6 +14,11 @@ ocp4_workload_tenant_rhacs_username: "user-{{ guid }}"
 #   Scope Manager, Sensor Creator, Vulnerability Management Approver
 ocp4_workload_tenant_rhacs_roles:
 - Analyst
+- APIToken creator
 
 # Key used for user matching in RHACS (typically "name" or "email")
 ocp4_workload_tenant_rhacs_user_attribute: "name"
+
+# API token creation
+ocp4_workload_tenant_rhacs_create_api_token: true
+ocp4_workload_tenant_rhacs_api_token_expiration_days: 14
