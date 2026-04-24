@@ -58,7 +58,7 @@
   ansible.builtin.set_fact:
     _ocp4_workload_tenant_rhacs_required_groups: >-
       {{
-        ocp4_workload_tenant_rhacs_roles | map('regex_replace', '^(.*)$',
+        ocp4_workload_tenant_rhacs_roles | reject('equalto', 'APIToken creator') | map('regex_replace', '^(.*)$',
           '{"roleName": "\1", "props": {"authProviderId": "'
           ~ _ocp4_workload_tenant_rhacs_auth_provider_id
           ~ '", "key": "' ~ ocp4_workload_tenant_rhacs_user_attribute
