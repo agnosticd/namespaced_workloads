@@ -97,8 +97,7 @@
     url: "{{ _ocp4_workload_tenant_rhacs_central_route }}/v1/apitokens/generate"
     body:
       name: "{{ ocp4_workload_tenant_rhacs_username }}"
-      roles:
-      - Analyst
+      roles: "{{ ocp4_workload_tenant_rhacs_roles | reject('equalto', 'APIToken creator') | list }}"
       expiration: "{{ _ocp4_workload_tenant_rhacs_token_expiration }}"
     method: POST
     user: admin
@@ -116,6 +115,7 @@
       rhacs_username: "{{ ocp4_workload_tenant_rhacs_username }}"
       rhacs_roles: "{{ ocp4_workload_tenant_rhacs_roles | join(', ') }}"
       rhacs_route: "{{ _ocp4_workload_tenant_rhacs_central_route }}"
+      rhacs_hostname: "{{ _ocp4_workload_tenant_rhacs_central_route | urlsplit('hostname') }}"
 
 - name: Save RHACS API token
   when: ocp4_workload_tenant_rhacs_create_api_token | bool
