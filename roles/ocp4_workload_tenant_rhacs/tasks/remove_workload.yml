@@ -91,3 +91,37 @@
     validate_certs: false
     status_code: 200
   register: r_rhacs_groupsbatch_remove
+
+- name: List RHACS API tokens
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_rhacs_central_route }}/v1/apitokens"
+    method: GET
+    user: admin
+    password: "{{ _ocp4_workload_tenant_rhacs_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: 200
+  register: r_rhacs_api_tokens
+
+- name: Find tokens belonging to user
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_rhacs_user_tokens: >-
+      {{
+        r_rhacs_api_tokens.json.tokens | default([])
+        | selectattr('name', 'equalto', ocp4_workload_tenant_rhacs_username)
+        | list
+      }}
+
+- name: Revoke user's API tokens
+  when: _ocp4_workload_tenant_rhacs_user_tokens | length > 0
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_rhacs_central_route }}/v1/apitokens/revoke/{{ item.id }}"
+    method: PATCH
+    user: admin
+    password: "{{ _ocp4_workload_tenant_rhacs_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: 200
+  loop: "{{ _ocp4_workload_tenant_rhacs_user_tokens }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.id }})"
