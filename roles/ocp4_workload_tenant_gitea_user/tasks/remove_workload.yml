@@ -37,11 +37,21 @@
     - name: Acquire Gitea operations semaphore
       ansible.builtin.include_tasks: acquire_semaphore.yml
 
+    - name: Get user
+      ansible.builtin.uri:
+        url: >-
+          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ocp4_workload_tenant_gitea_user_username}}
+      register: r_gitea_get_user
+
+    - name: Set _gitea_user_id
+      ansible.builtin.set_fact:
+        _gitea_user_id: "{{ r_gitea_get_user.json.id }}"
+
     - name: Get all repositories for Gitea user
       ansible.builtin.uri:
         url: >-
-          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/search?owner={{
-          ocp4_workload_tenant_gitea_user_username }}&limit=50
+          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/search?exclusive&uid={{
+          _gitea_user_id }}
         method: GET
         url_username: "{{ _ocp4_workload_tenant_gitea_user_admin_user }}"
         url_password: "{{ _ocp4_workload_tenant_gitea_user_admin_password }}"
