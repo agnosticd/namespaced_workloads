@@ -41,13 +41,18 @@
       ansible.builtin.uri:
         url: >-
           {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ocp4_workload_tenant_gitea_user_username}}
+        status_code:
+        - 200
+        - 404
       register: r_gitea_get_user
 
     - name: Set _gitea_user_id
+      when: r_gitea_get_user.status == 200
       ansible.builtin.set_fact:
         _gitea_user_id: "{{ r_gitea_get_user.json.id }}"
 
     - name: Get all repositories for Gitea user
+      when: _gitea_user_id is defined
       ansible.builtin.uri:
         url: >-
           {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/search?exclusive&uid={{
@@ -62,7 +67,9 @@
       register: r_gitea_user_repos
 
     - name: Delete all repositories for Gitea user
-      when: r_gitea_user_repos.json.data | default([]) | length > 0
+      when:
+        - _gitea_user_id is defined
+        - r_gitea_user_repos.json.data | default([]) | length > 0
       ansible.builtin.uri:
         url: >-
           {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/{{
