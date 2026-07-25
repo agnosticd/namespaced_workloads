@@ -58,10 +58,11 @@
                     mountPath: /var/lib/ceph/radosgw
                 resources:
                   requests:
-                    cpu: 250m
-                    memory: 512Mi
+                    cpu: "1"
+                    memory: 4Gi
                   limits:
-                    memory: 2Gi
+                    cpu: "4"
+                    memory: 16Gi
             volumes:
               - name: data
                 persistentVolumeClaim:
