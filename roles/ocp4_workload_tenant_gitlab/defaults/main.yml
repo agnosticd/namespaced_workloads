@@ -7,6 +7,11 @@ ocp4_workload_tenant_gitlab_openshift_api_token: "{{ cluster_admin_agnosticd_sa_
 ocp4_workload_tenant_gitlab_namespace: gitlab
 ocp4_workload_tenant_gitlab_route_name: gitlab
 
+# How long to wait for the GitLab API to start serving requests before creating
+# the user. GitLab returns 502/503 during boot; total wait = retries * delay.
+ocp4_workload_tenant_gitlab_api_ready_retries: 30
+ocp4_workload_tenant_gitlab_api_ready_delay: 10
+
 # Authentication mode: native or keycloak
 # - native: Create user with password in GitLab
 # - keycloak: Link to existing Keycloak user (user must exist in Keycloak)

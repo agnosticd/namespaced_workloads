@@ -24,8 +24,13 @@
       password: "{{ ocp4_workload_tenant_gitlab_password }}"
       skip_confirmation: true
     validate_certs: false
-    status_code: [201, 409]
+    # 201 = created, 409 = already exists. Tolerate 502/503 during retries in
+    # case GitLab briefly drops out; `until` requires a real success code.
+    status_code: [201, 409, 502, 503]
   register: r_create_user
+  retries: 10
+  delay: 10
+  until: r_create_user.status in [201, 409]
 
 - name: Get user ID
   ansible.builtin.uri:

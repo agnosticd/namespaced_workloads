@@ -44,6 +44,29 @@
     _ocp4_workload_tenant_gitlab_token: "{{ r_gitlab_token.resources[0].data.token | b64decode }}"
 
 # ==================================================================
+# Wait for the GitLab API to be serving requests
+# ==================================================================
+# The Route and the root-user-personal-token Secret are created early in the
+# GitLab deploy, before the Rails/Puma frontend is actually ready. Hitting the
+# API before then returns 502/503. Poll /api/v4/version until it answers 200 so
+# concurrent tenant provisions don't race GitLab's startup.
+
+- name: Wait for GitLab API to be ready
+  ansible.builtin.uri:
+    url: "{{ _ocp4_workload_tenant_gitlab_url }}/api/v4/version"
+    method: GET
+    headers:
+      PRIVATE-TOKEN: "{{ _ocp4_workload_tenant_gitlab_token }}"
+    validate_certs: false
+    # Accept the transient startup codes so mid-retry calls aren't marked
+    # failed; `until` keeps polling until we see a real 200.
+    status_code: [200, 502, 503]
+  register: r_gitlab_ready
+  retries: "{{ ocp4_workload_tenant_gitlab_api_ready_retries }}"
+  delay: "{{ ocp4_workload_tenant_gitlab_api_ready_delay }}"
+  until: r_gitlab_ready.status == 200
+
+# ==================================================================
 # Create GitLab user based on auth mode
 # ==================================================================
 
