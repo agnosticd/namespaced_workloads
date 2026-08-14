@@ -46,7 +46,11 @@
       "default_image":"rhel10",
       "token":"{{ _troshka_sa_token }}",
       "namespace":"{{ troshka_namespace }}",
-      "api_url":"{{ _cluster_api_url }}"}
+      "api_url":"{{ _cluster_api_url }}",
+      "auto_provision_host":false,
+      "pkg_repo_url":"{{ troshka_pkg_repo_url }}",
+      "pkg_repo_username":"{{ troshka_pkg_repo_username }}",
+      "pkg_repo_password":"{{ troshka_pkg_repo_password }}"}
 
 - name: Register OCP Virt provider
   kubernetes.core.k8s_exec:
@@ -110,22 +114,6 @@
       -d '{{ _central_provider_payload }}'
   register: _central_provider_result
   failed_when: _central_provider_result.return_code != 0
-
-- name: Wait for RHEL 10.2 DVD ISO DataVolume to finish importing
-  # The host boots this ISO; the backend only allows the VM ~10 min to reach
-  # Running, so the (large, cross-cluster) import must complete before the host
-  # is created — otherwise provisioning times out with the VM stuck on volume
-  # binding.
-  when: troshka_seed_s3_endpoint | default('') != ''
-  kubernetes.core.k8s_info:
-    api_version: cdi.kubevirt.io/v1beta1
-    kind: DataVolume
-    name: rhel-10.2-dvd-iso
-    namespace: "{{ troshka_namespace }}"
-  register: _iso_dv
-  until: (_iso_dv.resources[0].status.phase | default('')) == 'Succeeded'
-  retries: 80
-  delay: 15
 
 - name: Build host creation payload
   ansible.builtin.set_fact:
