@@ -1,24 +1,35 @@
 ---
+# Library seeding for the dedicated Troshka.
+#
+# The gold images live in the central S4 bucket under Troshka's native nested
+# layout (library/<library-uuid>/<image-uuid>/<Display Name>.ext). Rather than
+# pre-copying by hard-coded flat keys, we register the central bucket as a
+# read-only library source (see configure.yaml) and let the backend resolve
+# each image from library/manifest.json via /library/sync-central. Image data
+# is pulled on demand at deploy time (cold-storage model), so no bulk pre-copy
+# is required.
 - name: Skip seeding if no central S3 configured
   when: troshka_seed_s3_endpoint | default('') == '' or troshka_seed_images | length == 0
   ansible.builtin.debug:
-    msg: "No seed images configured, skipping library seeding"
+    msg: "No central S3 configured, skipping library seeding"
 
-- name: Seed library from central S4
+- name: Seed library from central S4 via manifest
   when: troshka_seed_s3_endpoint | default('') != '' and troshka_seed_images | length > 0
   block:
-    - name: Wait for seed download job to complete
-      kubernetes.core.k8s_info:
-        api_version: batch/v1
-        kind: Job
-        name: troshka-seed-library
+    - name: Sync central library (reads library/manifest.json from the gold bucket)
+      kubernetes.core.k8s_exec:
         namespace: "{{ troshka_namespace }}"
-      register: _seed_job
-      until: (_seed_job.resources[0].status.succeeded | default(0)) >= 1
-      retries: 60
-      delay: 15
+        pod: "{{ _backend_pod }}"
+        container: backend
+        command: >-
+          curl -sf -X POST http://localhost:8200/api/v1/library/sync-central
+          -H "X-Forwarded-Email: {{ _requester_identity }}"
+      register: _sync_central
+      until: _sync_central.rc == 0
+      retries: 30
+      delay: 10
 
-    - name: Check existing library items
+    - name: Wait until all seed images are present in the library
       kubernetes.core.k8s_exec:
         namespace: "{{ troshka_namespace }}"
         pod: "{{ _backend_pod }}"
@@ -26,100 +37,37 @@
         command: >-
           curl -sf http://localhost:8200/api/v1/library/
           -H "X-Forwarded-Email: {{ _requester_identity }}"
-      register: _existing_library
+      register: _library
+      until:
+        - _library.rc == 0
+        - (troshka_seed_images | map(attribute='name') | list)
+          | difference((_library.stdout | from_json) | map(attribute='name') | list)
+          | length == 0
+      retries: 30
+      delay: 10
 
-    - name: Build existing items lookup
+    - name: Build name -> item lookup
       ansible.builtin.set_fact:
-        _existing_by_name: >-
-          {{ dict((_existing_library.stdout | from_json)
-          | map(attribute='name')
-          | zip(_existing_library.stdout | from_json)) }}
+        _library_by_name: >-
+          {{ dict((_library.stdout | from_json) | map(attribute='name')
+          | zip(_library.stdout | from_json)) }}
 
-    - name: Determine which images need seeding
-      ansible.builtin.set_fact:
-        _images_to_seed: >-
-          {{ troshka_seed_images
-          | rejectattr('name', 'in', _existing_by_name.keys() | list)
-          | list }}
-
-    - name: Update tags on existing items
+    - name: Apply default tags by name
       kubernetes.core.k8s_exec:
         namespace: "{{ troshka_namespace }}"
         pod: "{{ _backend_pod }}"
         container: backend
         command: >-
           curl -sf -X PATCH
-          http://localhost:8200/api/v1/library/{{ _existing_by_name[item.name].id }}
+          http://localhost:8200/api/v1/library/{{ _library_by_name[item.name].id }}
           -H "Content-Type: application/json"
           -H "X-Forwarded-Email: {{ _requester_identity }}"
           -d '{"tags":{"{{ item.tags[0] }}":true}}'
-      loop: >-
-        {{ troshka_seed_images
-        | selectattr('name', 'in', _existing_by_name.keys() | list)
-        | list }}
-      when: item.tags | default([]) | length > 0
-      ignore_errors: true
-
-    - name: Create and finalize new library items
-      when: _images_to_seed | length > 0
-      block:
-        - name: Create library items via API
-          kubernetes.core.k8s_exec:
-            namespace: "{{ troshka_namespace }}"
-            pod: "{{ _backend_pod }}"
-            container: backend
-            command: >-
-              curl -sf -X POST
-              http://localhost:8200/api/v1/library/
-              -H "Content-Type: application/json"
-              -H "X-Forwarded-Email: {{ _requester_identity }}"
-              -d '{"name":"{{ item.name }}",
-              "type":"{{ item.type }}",
-              "format":"{{ item.format }}"}'
-          register: _lib_items
-          loop: "{{ _images_to_seed }}"
-
-        - name: Build finalize payload
-          ansible.builtin.set_fact:
-            _finalize_payload: >-
-              {"seed_key":"seed/{{ _images_to_seed[idx].s3_object }}",
-              "tags":{{ _images_to_seed[idx].tags
-              | default([]) | to_json }},
-              "skip_copy":true}
-          loop: "{{ _lib_items.results }}"
-          loop_control:
-            index_var: idx
-          register: _finalize_payloads
-
-        - name: Finalize seed items
-          kubernetes.core.k8s_exec:
-            namespace: "{{ troshka_namespace }}"
-            pod: "{{ _backend_pod }}"
-            container: backend
-            command: >-
-              curl -sf -X POST
-              http://localhost:8200/api/v1/library/{{ (item.stdout | from_json).id }}/finalize-seed
-              -H "Content-Type: application/json"
-              -H "X-Forwarded-Email: {{ _requester_identity }}"
-              -d '{{ _finalize_payloads.results[idx].ansible_facts._finalize_payload }}'
-          loop: "{{ _lib_items.results }}"
-          loop_control:
-            index_var: idx
+      loop: "{{ troshka_seed_images | selectattr('tags', 'defined') | list }}"
+      when:
+        - item.tags | default([]) | length > 0
+        - item.name in _library_by_name
 
     - name: Report seed status
       ansible.builtin.debug:
-        msg: >-
-          {{ _images_to_seed | length }} new,
-          {{ troshka_seed_images | length - _images_to_seed | length }}
-          already existed
-
-- name: Re-sync central library to deduplicate seeded items
-  when: troshka_seed_s3_endpoint | default('') != ''
-  kubernetes.core.k8s_exec:
-    namespace: "{{ troshka_namespace }}"
-    pod: "{{ _backend_pod }}"
-    container: backend
-    command: >-
-      curl -sf -X POST http://localhost:8200/api/v1/library/sync-central
-      -H "X-Forwarded-Email: {{ _requester_identity }}"
-  ignore_errors: true
+        msg: "Library synced from central: {{ (_library.stdout | from_json) | length }} items"
