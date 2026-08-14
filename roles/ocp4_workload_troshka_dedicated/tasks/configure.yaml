@@ -46,7 +46,8 @@
       "default_image":"rhel10",
       "token":"{{ _troshka_sa_token }}",
       "namespace":"{{ troshka_namespace }}",
-      "api_url":"{{ _cluster_api_url }}"}
+      "api_url":"{{ _cluster_api_url }}",
+      "auto_provision_host":false}
 
 - name: Register OCP Virt provider
   kubernetes.core.k8s_exec:
