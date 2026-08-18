@@ -38,10 +38,16 @@
     _cluster_api_url: >-
       {{ sandbox_openshift_api_url | default(lookup('env', 'K8S_AUTH_HOST')) }}
 
-- name: Build provider registration payload (HTTP package repo)
-  when:
-    - troshka_pkg_repo_url | default('') != ''
-    - troshka_pkg_repo_password | default('') != ''
+- name: Require HTTP package repo for host VM provisioning
+  ansible.builtin.assert:
+    that:
+      - troshka_pkg_repo_url | default('') != ''
+      - troshka_pkg_repo_password | default('') != ''
+    fail_msg: >-
+      troshka_pkg_repo_url and troshka_pkg_repo_password are required.
+      Dedicated CI uses the central HTTP package repo, not per-namespace DVD ISOs.
+
+- name: Build OCP Virt provider registration payload
   ansible.builtin.set_fact:
     _provider_payload: >-
       {"name":"Local OCP Virt","type":"ocpvirt",
@@ -53,33 +59,6 @@
       "pkg_repo_url":"{{ troshka_pkg_repo_url }}",
       "pkg_repo_username":"{{ troshka_pkg_repo_username }}",
       "pkg_repo_password":"{{ troshka_pkg_repo_password }}"}
-
-- name: Build provider registration payload (with install ISO PVC)
-  when:
-    - troshka_seed_s3_endpoint | default('') != ''
-    - troshka_pkg_repo_url | default('') == '' or troshka_pkg_repo_password | default('') == ''
-  ansible.builtin.set_fact:
-    _provider_payload: >-
-      {"name":"Local OCP Virt","type":"ocpvirt",
-      "default_region":"{{ troshka_namespace }}",
-      "default_image":"rhel10",
-      "token":"{{ _troshka_sa_token }}",
-      "namespace":"{{ troshka_namespace }}",
-      "api_url":"{{ _cluster_api_url }}",
-      "iso_pvc":"rhel-10.2-dvd-iso"}
-
-- name: Build provider registration payload (no package repo or ISO)
-  when:
-    - troshka_pkg_repo_url | default('') == '' or troshka_pkg_repo_password | default('') == ''
-    - troshka_seed_s3_endpoint | default('') == ''
-  ansible.builtin.set_fact:
-    _provider_payload: >-
-      {"name":"Local OCP Virt","type":"ocpvirt",
-      "default_region":"{{ troshka_namespace }}",
-      "default_image":"rhel10",
-      "token":"{{ _troshka_sa_token }}",
-      "namespace":"{{ troshka_namespace }}",
-      "api_url":"{{ _cluster_api_url }}"}
 
 - name: Register OCP Virt provider
   kubernetes.core.k8s_exec:
@@ -145,24 +124,6 @@
       -d '{{ _central_provider_payload }}'
   register: _central_provider_result
   failed_when: _central_provider_result.return_code != 0
-
-- name: Wait for RHEL 10.2 DVD ISO DataVolume to finish importing
-  # The host boots this ISO; the backend only allows the VM ~10 min to reach
-  # Running, so the (large, cross-cluster) import must complete before the host
-  # is created — otherwise provisioning times out with the VM stuck on volume
-  # binding. Skipped when troshka_pkg_repo_* is set (HTTP repo path).
-  when:
-    - troshka_seed_s3_endpoint | default('') != ''
-    - troshka_pkg_repo_url | default('') == '' or troshka_pkg_repo_password | default('') == ''
-  kubernetes.core.k8s_info:
-    api_version: cdi.kubevirt.io/v1beta1
-    kind: DataVolume
-    name: rhel-10.2-dvd-iso
-    namespace: "{{ troshka_namespace }}"
-  register: _iso_dv
-  until: (_iso_dv.resources[0].status.phase | default('')) == 'Succeeded'
-  retries: 80
-  delay: 15
 
 - name: Build host creation payload
   ansible.builtin.set_fact:
