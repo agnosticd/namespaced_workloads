@@ -38,8 +38,26 @@
     _cluster_api_url: >-
       {{ sandbox_openshift_api_url | default(lookup('env', 'K8S_AUTH_HOST')) }}
 
+- name: Build provider registration payload (HTTP package repo)
+  when:
+    - troshka_pkg_repo_url | default('') != ''
+    - troshka_pkg_repo_password | default('') != ''
+  ansible.builtin.set_fact:
+    _provider_payload: >-
+      {"name":"Local OCP Virt","type":"ocpvirt",
+      "default_region":"{{ troshka_namespace }}",
+      "default_image":"rhel10",
+      "token":"{{ _troshka_sa_token }}",
+      "namespace":"{{ troshka_namespace }}",
+      "api_url":"{{ _cluster_api_url }}",
+      "pkg_repo_url":"{{ troshka_pkg_repo_url }}",
+      "pkg_repo_username":"{{ troshka_pkg_repo_username }}",
+      "pkg_repo_password":"{{ troshka_pkg_repo_password }}"}
+
 - name: Build provider registration payload (with install ISO PVC)
-  when: troshka_seed_s3_endpoint | default('') != ''
+  when:
+    - troshka_seed_s3_endpoint | default('') != ''
+    - troshka_pkg_repo_url | default('') == '' or troshka_pkg_repo_password | default('') == ''
   ansible.builtin.set_fact:
     _provider_payload: >-
       {"name":"Local OCP Virt","type":"ocpvirt",
@@ -50,8 +68,10 @@
       "api_url":"{{ _cluster_api_url }}",
       "iso_pvc":"rhel-10.2-dvd-iso"}
 
-- name: Build provider registration payload (no central ISO)
-  when: troshka_seed_s3_endpoint | default('') == ''
+- name: Build provider registration payload (no package repo or ISO)
+  when:
+    - troshka_pkg_repo_url | default('') == '' or troshka_pkg_repo_password | default('') == ''
+    - troshka_seed_s3_endpoint | default('') == ''
   ansible.builtin.set_fact:
     _provider_payload: >-
       {"name":"Local OCP Virt","type":"ocpvirt",
@@ -130,8 +150,10 @@
   # The host boots this ISO; the backend only allows the VM ~10 min to reach
   # Running, so the (large, cross-cluster) import must complete before the host
   # is created — otherwise provisioning times out with the VM stuck on volume
-  # binding.
-  when: troshka_seed_s3_endpoint | default('') != ''
+  # binding. Skipped when troshka_pkg_repo_* is set (HTTP repo path).
+  when:
+    - troshka_seed_s3_endpoint | default('') != ''
+    - troshka_pkg_repo_url | default('') == '' or troshka_pkg_repo_password | default('') == ''
   kubernetes.core.k8s_info:
     api_version: cdi.kubevirt.io/v1beta1
     kind: DataVolume
