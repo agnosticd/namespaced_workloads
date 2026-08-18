@@ -58,7 +58,8 @@
       "api_url":"{{ _cluster_api_url }}",
       "pkg_repo_url":"{{ troshka_pkg_repo_url }}",
       "pkg_repo_username":"{{ troshka_pkg_repo_username }}",
-      "pkg_repo_password":"{{ troshka_pkg_repo_password }}"}
+      "pkg_repo_password":"{{ troshka_pkg_repo_password }}",
+      "auto_provision_host":false}
 
 - name: Register OCP Virt provider
   kubernetes.core.k8s_exec:
