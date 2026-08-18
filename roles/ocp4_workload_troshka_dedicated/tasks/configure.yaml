@@ -38,7 +38,20 @@
     _cluster_api_url: >-
       {{ sandbox_openshift_api_url | default(lookup('env', 'K8S_AUTH_HOST')) }}
 
-- name: Build provider registration payload
+- name: Build provider registration payload (with install ISO PVC)
+  when: troshka_seed_s3_endpoint | default('') != ''
+  ansible.builtin.set_fact:
+    _provider_payload: >-
+      {"name":"Local OCP Virt","type":"ocpvirt",
+      "default_region":"{{ troshka_namespace }}",
+      "default_image":"rhel10",
+      "token":"{{ _troshka_sa_token }}",
+      "namespace":"{{ troshka_namespace }}",
+      "api_url":"{{ _cluster_api_url }}",
+      "iso_pvc":"rhel-10.2-dvd-iso"}
+
+- name: Build provider registration payload (no central ISO)
+  when: troshka_seed_s3_endpoint | default('') == ''
   ansible.builtin.set_fact:
     _provider_payload: >-
       {"name":"Local OCP Virt","type":"ocpvirt",
