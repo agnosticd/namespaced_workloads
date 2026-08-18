@@ -120,7 +120,21 @@
                   - /bin/sh
                   - -c
                   - |
-                    aws --endpoint-url {{ troshka_s4_endpoint }} s3 mb s3://{{ troshka_s4_bucket }} || true
+                    set -e
+                    for i in $(seq 1 60); do
+                      if aws --endpoint-url {{ troshka_s4_endpoint }} s3 ls >/dev/null 2>&1; then
+                        break
+                      fi
+                      echo "Waiting for S4 API ($i/60)..."
+                      sleep 5
+                    done
+                    if aws --endpoint-url {{ troshka_s4_endpoint }} s3 ls "s3://{{ troshka_s4_bucket }}" >/dev/null 2>&1; then
+                      echo "Bucket {{ troshka_s4_bucket }} already exists"
+                    else
+                      aws --endpoint-url {{ troshka_s4_endpoint }} s3 mb "s3://{{ troshka_s4_bucket }}"
+                      echo "Created bucket {{ troshka_s4_bucket }}"
+                    fi
+                    aws --endpoint-url {{ troshka_s4_endpoint }} s3 ls "s3://{{ troshka_s4_bucket }}"
                 env:
                   - name: AWS_ACCESS_KEY_ID
                     value: "{{ _s4_access_key }}"
