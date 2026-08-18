@@ -106,6 +106,7 @@
   ansible.builtin.set_fact:
     _central_provider_payload: >-
       {"name":"Central Gold Images","type":"s3_readonly",
+      "default_region":"us-east-1",
       "access_key_id":"{{ troshka_seed_s3_access_key }}",
       "secret_access_key":"{{ troshka_seed_s3_secret_key }}",
       "bucket":"{{ troshka_seed_s3_bucket }}",

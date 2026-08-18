@@ -140,6 +140,8 @@
                     value: "{{ _s4_access_key }}"
                   - name: AWS_SECRET_ACCESS_KEY
                     value: "{{ _s4_secret_key }}"
+                  - name: AWS_DEFAULT_REGION
+                    value: us-east-1
 
 - name: Wait for bucket init job
   kubernetes.core.k8s_info:
@@ -149,5 +151,5 @@
     namespace: "{{ troshka_namespace }}"
   register: _init_job
   until: (_init_job.resources[0].status.succeeded | default(0)) >= 1
-  retries: 12
+  retries: 45
   delay: 10
