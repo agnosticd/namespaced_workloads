@@ -1,0 +1,20 @@
+---
+# Remove OCP User and Identity objects
+# This ensures the user is fully removed from OpenShift authentication
+
+- name: Delete OCP User object
+  kubernetes.core.k8s:
+    state: absent
+    api_version: user.openshift.io/v1
+    kind: User
+    name: "{{ ocp4_workload_tenant_authentication_user_username }}"
+  ignore_errors: true
+
+- name: Delete OCP Identity for htpasswd user
+  when: ocp4_workload_tenant_authentication_user_provider == 'htpasswd'
+  kubernetes.core.k8s:
+    state: absent
+    api_version: user.openshift.io/v1
+    kind: Identity
+    name: "htpasswd:{{ ocp4_workload_tenant_authentication_user_username }}"
+  ignore_errors: true

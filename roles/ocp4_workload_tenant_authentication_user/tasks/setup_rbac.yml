@@ -1,0 +1,44 @@
+---
+# Setup RBAC for tenant user in their namespace
+
+- name: Grant tenant user admin access to their namespace
+  when: ocp4_workload_tenant_namespace_name is defined
+  kubernetes.core.k8s:
+    state: present
+    resource_definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: "{{ ocp4_workload_tenant_authentication_user_username }}-admin"
+        namespace: "{{ ocp4_workload_tenant_namespace_name }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: admin
+      subjects:
+      - kind: User
+        name: "{{ ocp4_workload_tenant_authentication_user_username }}"
+
+- name: Grant tenant user admin access to additional namespaces
+  when:
+  - ocp4_workload_tenant_namespace_additional_namespaces is defined
+  - ocp4_workload_tenant_namespace_additional_namespaces | length > 0
+  kubernetes.core.k8s:
+    state: present
+    resource_definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: "{{ ocp4_workload_tenant_authentication_user_username }}-admin"
+        namespace: "{{ _namespace.name }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: admin
+      subjects:
+      - kind: User
+        name: "{{ ocp4_workload_tenant_authentication_user_username }}"
+  loop: "{{ ocp4_workload_tenant_namespace_additional_namespaces }}"
+  loop_control:
+    loop_var: _namespace
+    label: "{{ _namespace.name }}"

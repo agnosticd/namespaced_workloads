@@ -1,0 +1,111 @@
+---
+# Create Keycloak user for tenant
+# This is a simplified implementation based on ocp4_workload_tenant_keycloak_user
+
+- name: Get ingress config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Ingress
+    name: cluster
+  register: r_ingress_config
+
+- name: Set cluster ingress domain
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_authentication_user_ingress_domain: >-
+      {{ r_ingress_config.resources[0].spec.domain }}
+    _ocp4_workload_tenant_authentication_user_console_url: >-
+      https://console-openshift-console.{{ r_ingress_config.resources[0].spec.domain }}
+    _ocp4_workload_tenant_authentication_user_api_url: >-
+      {{ openshift_api_url | default('https://api.' + r_ingress_config.resources[0].spec.domain + ':6443') }}
+
+- name: Set user password if not provided
+  when: ocp4_workload_tenant_authentication_user_password == ""
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_authentication_user_password: >-
+      {{
+        lookup('password', '/dev/null',
+          chars=['ascii_letters','digits'],
+          length=ocp4_workload_tenant_authentication_user_password_length
+        )
+      }}
+
+- name: Use provided password
+  when: ocp4_workload_tenant_authentication_user_password != ""
+  ansible.builtin.set_fact:
+    _ocp4_workload_tenant_authentication_user_password: "{{ ocp4_workload_tenant_authentication_user_password }}"
+
+- name: Get Keycloak route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: keycloak
+    namespace: "{{ ocp4_workload_tenant_authentication_user_keycloak_namespace }}"
+  register: r_keycloak_route
+
+- name: Get Keycloak admin credentials
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: keycloak-initial-admin
+    namespace: "{{ ocp4_workload_tenant_authentication_user_keycloak_namespace }}"
+  register: r_keycloak_admin_secret
+
+- name: Set Keycloak facts
+  ansible.builtin.set_fact:
+    _keycloak_url: "https://{{ r_keycloak_route.resources[0].spec.host }}"
+    _keycloak_admin_user: "{{ r_keycloak_admin_secret.resources[0].data.username | b64decode }}"
+    _keycloak_admin_password: "{{ r_keycloak_admin_secret.resources[0].data.password | b64decode }}"
+
+- name: Get Keycloak admin access token
+  ansible.builtin.uri:
+    url: "{{ _keycloak_url }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      username: "{{ _keycloak_admin_user }}"
+      password: "{{ _keycloak_admin_password }}"
+      grant_type: password
+      client_id: admin-cli
+    validate_certs: false
+    status_code: 200
+  register: r_keycloak_admin_token
+
+- name: Create Keycloak user
+  ansible.builtin.uri:
+    url: "{{ _keycloak_url }}/admin/realms/{{ ocp4_workload_tenant_authentication_user_keycloak_realm }}/users"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ r_keycloak_admin_token.json.access_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      username: "{{ ocp4_workload_tenant_authentication_user_username }}"
+      email: "{{ ocp4_workload_tenant_authentication_user_keycloak_email }}"
+      firstName: "{{ ocp4_workload_tenant_authentication_user_keycloak_firstname }}"
+      lastName: "{{ ocp4_workload_tenant_authentication_user_keycloak_lastname }}"
+      enabled: true
+      emailVerified: true
+      credentials:
+        - type: password
+          value: "{{ _ocp4_workload_tenant_authentication_user_password }}"
+          temporary: false
+    validate_certs: false
+    status_code: [201, 409]
+  register: r_create_keycloak_user
+
+- name: Print user information
+  agnosticd.core.agnosticd_user_info:
+    msg: >-
+      Keycloak user `{{ ocp4_workload_tenant_authentication_user_username }}`
+      created with password `{{ _ocp4_workload_tenant_authentication_user_password }}`.
+
+- name: Save keycloak user information to user data
+  agnosticd.core.agnosticd_user_info:
+    data:
+      user: "{{ ocp4_workload_tenant_authentication_user_username }}"
+      password: "{{ _ocp4_workload_tenant_authentication_user_password }}"
+      openshift_username: "{{ ocp4_workload_tenant_authentication_user_username }}"
+      openshift_password: "{{ _ocp4_workload_tenant_authentication_user_password }}"
+      openshift_api_url: "{{ _ocp4_workload_tenant_authentication_user_api_url }}"
+      openshift_console_url: "{{ _ocp4_workload_tenant_authentication_user_console_url }}"
+      openshift_cluster_ingress_domain: "{{ _ocp4_workload_tenant_authentication_user_ingress_domain }}"
