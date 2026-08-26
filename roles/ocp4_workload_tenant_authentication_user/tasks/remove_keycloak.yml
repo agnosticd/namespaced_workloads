@@ -44,7 +44,10 @@
 
   - name: Get user ID from Keycloak
     ansible.builtin.uri:
-      url: "{{ _keycloak_url }}/admin/realms/{{ ocp4_workload_tenant_authentication_user_keycloak_realm }}/users?username={{ ocp4_workload_tenant_authentication_user_username }}"
+      url: >-
+        {{ _keycloak_url }}/admin/realms/{{
+        ocp4_workload_tenant_authentication_user_keycloak_realm
+        }}/users?username={{ ocp4_workload_tenant_authentication_user_username }}
       method: GET
       headers:
         Authorization: "Bearer {{ r_keycloak_admin_token.json.access_token }}"
@@ -55,7 +58,10 @@
   - name: Delete Keycloak user by ID
     when: r_keycloak_user_search.json | length > 0
     ansible.builtin.uri:
-      url: "{{ _keycloak_url }}/admin/realms/{{ ocp4_workload_tenant_authentication_user_keycloak_realm }}/users/{{ r_keycloak_user_search.json[0].id }}"
+      url: >-
+        {{ _keycloak_url }}/admin/realms/{{
+        ocp4_workload_tenant_authentication_user_keycloak_realm
+        }}/users/{{ r_keycloak_user_search.json[0].id }}
       method: DELETE
       headers:
         Authorization: "Bearer {{ r_keycloak_admin_token.json.access_token }}"

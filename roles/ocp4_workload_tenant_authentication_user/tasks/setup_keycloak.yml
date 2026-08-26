@@ -11,9 +11,12 @@
 
 - name: Set cluster ingress domain
   ansible.builtin.set_fact:
-    _ocp4_workload_tenant_authentication_user_ingress_domain: "{{ r_ingress_config.resources[0].spec.domain }}"
-    _ocp4_workload_tenant_authentication_user_console_url: "https://console-openshift-console.{{ r_ingress_config.resources[0].spec.domain }}"
-    _ocp4_workload_tenant_authentication_user_api_url: "{{ openshift_api_url | default('https://api.' + r_ingress_config.resources[0].spec.domain + ':6443') }}"
+    _ocp4_workload_tenant_authentication_user_ingress_domain: >-
+      {{ r_ingress_config.resources[0].spec.domain }}
+    _ocp4_workload_tenant_authentication_user_console_url: >-
+      https://console-openshift-console.{{ r_ingress_config.resources[0].spec.domain }}
+    _ocp4_workload_tenant_authentication_user_api_url: >-
+      {{ openshift_api_url | default('https://api.' + r_ingress_config.resources[0].spec.domain + ':6443') }}
 
 - name: Set user password if not provided
   when: ocp4_workload_tenant_authentication_user_password == ""
