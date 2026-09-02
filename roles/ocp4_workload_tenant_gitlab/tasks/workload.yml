@@ -74,14 +74,13 @@
 # Save user information
 # ==================================================================
 
-# NOTE: agnosticd_user_info disabled for standalone testing
-# - name: Save GitLab user information
-#   agnosticd.core.agnosticd_user_info:
-#     data:
-#       gitlab_url: "{{ _ocp4_workload_tenant_gitlab_url }}"
-#       gitlab_username: "{{ ocp4_workload_tenant_gitlab_username }}"
-#       gitlab_password: "{{ ocp4_workload_tenant_gitlab_password }}"
-#       gitlab_user_group: "{{ ocp4_workload_tenant_gitlab_username }}"
+- name: Save GitLab user information
+  agnosticd.core.agnosticd_user_info:
+    data:
+      gitlab_url: "{{ _ocp4_workload_tenant_gitlab_url }}"
+      gitlab_username: "{{ ocp4_workload_tenant_gitlab_username }}"
+      gitlab_password: "{{ ocp4_workload_tenant_gitlab_password }}"
+      gitlab_user_group: "{{ ocp4_workload_tenant_gitlab_username }}"
 
 - name: Display GitLab user information
   ansible.builtin.debug:
