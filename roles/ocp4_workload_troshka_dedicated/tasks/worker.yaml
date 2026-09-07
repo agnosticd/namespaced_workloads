@@ -1,75 +1,35 @@
 ---
-- name: Set cluster apps domain and requester identity
-  ansible.builtin.set_fact:
-    _cluster_apps_domain: "{{ sandbox_openshift_apps_domain }}"
-    _troshka_route_host: "troshka-{{ troshka_namespace }}.{{ sandbox_openshift_apps_domain }}"
-    _requester_identity: "{{ requester_email | default(sandboxes[0].annotations.owner_email | default('admin@troshka')) }}"
-
-- name: Create backend ConfigMap
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: troshka-config
-        namespace: "{{ troshka_namespace }}"
-      data:
-        config.yaml: |
-          app:
-            name: troshka
-            port: 8200
-            host: "0.0.0.0"
-            log_level: info
-            root_path: ""
-            external_url: "https://{{ _troshka_route_host }}"
-          auth:
-            oauth_enabled: true
-            jwt_algorithm: "HS256"
-            admin_users: "{{ _requester_identity }}"
-            allowed_users: "{{ _requester_identity }}"
-            operator_users: ""
-          s3:
-            endpoint_url: "{{ troshka_s4_endpoint }}"
-            bucket: "{{ troshka_s4_bucket }}"
-            region: "us-east-1"
-          defaults:
-            run_timer_hours: 8
-            lifetime_days: 30
-            max_vms_per_project: 20
-            max_projects_per_user: 10
-            user_library_quota_gb: 500
-          overcommit:
-            cpu_ratio: 4.0
-            ram_ratio: 1.5
-
-- name: Deploy backend
+# RQ worker: consumes the deploy/destroy/monitor jobs the backend enqueues to
+# Redis. Required once Redis is present — with Redis, enqueue_job puts jobs on the
+# queue instead of running them in-process, so without a worker deploys would
+# never execute. Same image/env/SA/config as the backend; command runs the RQ
+# worker instead of the API. Single replica for the single-user dedicated CI.
+- name: Deploy worker
   kubernetes.core.k8s:
     state: present
     definition:
       apiVersion: apps/v1
       kind: Deployment
       metadata:
-        name: troshka-backend
+        name: troshka-worker
         namespace: "{{ troshka_namespace }}"
         labels:
-          app.kubernetes.io/name: troshka-backend
+          app.kubernetes.io/name: troshka-worker
       spec:
         replicas: 1
         selector:
           matchLabels:
-            app.kubernetes.io/name: troshka-backend
+            app.kubernetes.io/name: troshka-worker
         template:
           metadata:
             labels:
-              app.kubernetes.io/name: troshka-backend
+              app.kubernetes.io/name: troshka-worker
           spec:
             serviceAccountName: troshka-backend
             containers:
-              - name: backend
+              - name: worker
                 image: "{{ troshka_backend_image }}"
-                ports:
-                  - containerPort: 8200
+                command: ["python3", "-m", "app.workers.deploy_worker"]
                 env:
                   - name: POD_NAMESPACE
                     valueFrom:
@@ -114,19 +74,3 @@
               - name: config
                 configMap:
                   name: troshka-config
-
-- name: Create backend Service
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: troshka-backend
-        namespace: "{{ troshka_namespace }}"
-      spec:
-        selector:
-          app.kubernetes.io/name: troshka-backend
-        ports:
-          - port: 8200
-            targetPort: 8200
