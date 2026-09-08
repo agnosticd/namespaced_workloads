@@ -2,15 +2,13 @@
 # Library seeding for the dedicated Troshka.
 #
 # The gold images live in the central S4 bucket under Troshka's native nested
-# layout (library/<library-uuid>/<image-uuid>/<Display Name>.ext). We register
-# the central bucket as a read-only library source (see configure.yaml) and let
-# the backend resolve each image from library/manifest.json via
-# /library/sync-central. Image data is pulled on demand at deploy time
-# (cold-storage model), so no bulk pre-copy is required.
-#
-# Default tags (ocp_default_iso / ocp_default_image) are carried in
-# library/manifest.json and applied by sync-central on import. Central items are
-# read-only, so they must not (and need not) be PATCHed from here.
+# layout (library/<library-uuid>/<image-uuid>/<Display Name>.ext). Rather than
+# pre-copying by hard-coded flat keys, we register the central bucket as a
+# read-only library source (see configure.yaml) and let the backend resolve
+# each image from library/manifest.json via /library/sync-central. Default tags
+# (ocp_default_iso / ocp_default_image) are carried in the manifest and applied
+# on import. Central items are read-only, so they must not be PATCHed from here.
+# Image data is pulled on demand at deploy time (cold-storage model).
 - name: Skip seeding if no central S3 configured
   when: troshka_seed_s3_endpoint | default('') == '' or troshka_seed_images | length == 0
   ansible.builtin.debug:
