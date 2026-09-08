@@ -38,7 +38,16 @@
     _cluster_api_url: >-
       {{ sandbox_openshift_api_url | default(lookup('env', 'K8S_AUTH_HOST')) }}
 
-- name: Build provider registration payload
+- name: Require HTTP package repo for host VM provisioning
+  ansible.builtin.assert:
+    that:
+      - troshka_pkg_repo_url | default('') != ''
+      - troshka_pkg_repo_password | default('') != ''
+    fail_msg: >-
+      troshka_pkg_repo_url and troshka_pkg_repo_password are required.
+      Dedicated CI uses the central HTTP package repo, not per-namespace DVD ISOs.
+
+- name: Build OCP Virt provider registration payload
   ansible.builtin.set_fact:
     _provider_payload: >-
       {"name":"Local OCP Virt","type":"ocpvirt",
@@ -47,10 +56,10 @@
       "token":"{{ _troshka_sa_token }}",
       "namespace":"{{ troshka_namespace }}",
       "api_url":"{{ _cluster_api_url }}",
-      "auto_provision_host":false,
       "pkg_repo_url":"{{ troshka_pkg_repo_url }}",
       "pkg_repo_username":"{{ troshka_pkg_repo_username }}",
-      "pkg_repo_password":"{{ troshka_pkg_repo_password }}"}
+      "pkg_repo_password":"{{ troshka_pkg_repo_password }}",
+      "auto_provision_host":false}
 
 - name: Register OCP Virt provider
   kubernetes.core.k8s_exec:
@@ -73,6 +82,7 @@
   ansible.builtin.set_fact:
     _s4_provider_payload: >-
       {"name":"Local S4","type":"s3",
+      "default_region":"us-east-1",
       "endpoint_url":"{{ troshka_s4_endpoint }}",
       "access_key_id":"{{ _s4_access_key }}",
       "secret_access_key":"{{ _s4_secret_key }}",
@@ -96,6 +106,7 @@
   ansible.builtin.set_fact:
     _central_provider_payload: >-
       {"name":"Central Gold Images","type":"s3_readonly",
+      "default_region":"us-east-1",
       "access_key_id":"{{ troshka_seed_s3_access_key }}",
       "secret_access_key":"{{ troshka_seed_s3_secret_key }}",
       "bucket":"{{ troshka_seed_s3_bucket }}",
@@ -115,7 +126,48 @@
   register: _central_provider_result
   failed_when: _central_provider_result.return_code != 0
 
+# Idempotency: this role may be re-run (e.g. a prior run timed out waiting for the
+# host to connect). Without reusing an existing host, each run POSTs a new host,
+# leaving the previous one orphaned — the "two hosts, one dead" bug. So: reap any
+# error/failed hosts (the API delete tears down their VM + PVCs), then reuse a
+# still-connected host if one exists; only create when there is none.
+- name: List existing hosts
+  kubernetes.core.k8s_exec:
+    namespace: "{{ troshka_namespace }}"
+    pod: "{{ _backend_pod }}"
+    container: backend
+    command: >-
+      curl -sf http://localhost:8200/api/v1/hosts/
+      -H "X-Forwarded-Email: {{ _requester_identity }}"
+  register: _existing_hosts
+  failed_when: false
+
+- name: Parse existing hosts
+  ansible.builtin.set_fact:
+    _hosts_list: "{{ (_existing_hosts.stdout | default('[]') | from_json) }}"
+
+- name: Reap dead (error/provision_failed) hosts
+  kubernetes.core.k8s_exec:
+    namespace: "{{ troshka_namespace }}"
+    pod: "{{ _backend_pod }}"
+    container: backend
+    command: >-
+      curl -sf -X DELETE http://localhost:8200/api/v1/hosts/{{ item.id }}
+      -H "X-Forwarded-Email: {{ _requester_identity }}"
+  loop: "{{ _hosts_list | selectattr('state', 'equalto', 'error') | list }}"
+  loop_control:
+    label: "{{ item.id }}"
+  failed_when: false
+
+- name: Reuse an already-connected host if present
+  ansible.builtin.set_fact:
+    _host_id: >-
+      {{ (_hosts_list
+          | selectattr('agent_status', 'equalto', 'connected')
+          | map(attribute='id') | list | first) | default('') }}
+
 - name: Build host creation payload
+  when: _host_id | length == 0
   ansible.builtin.set_fact:
     _host_payload: >-
       {"provider_id":"{{ _provider_id }}",
@@ -124,6 +176,7 @@
       "disk_gb":{{ troshka_host_disk_gb }}}
 
 - name: Create agent host
+  when: _host_id | length == 0
   kubernetes.core.k8s_exec:
     namespace: "{{ troshka_namespace }}"
     pod: "{{ _backend_pod }}"
@@ -136,7 +189,8 @@
   register: _host_result
   failed_when: _host_result.return_code != 0
 
-- name: Parse host response
+- name: Parse created host response
+  when: _host_id | length == 0
   ansible.builtin.set_fact:
     _host_id: "{{ (_host_result.stdout | from_json).id }}"
 
