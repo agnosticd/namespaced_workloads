@@ -30,6 +30,9 @@
     loop_control:
       label: "{{ item.name }}"
     register: r_groups
+    until: r_groups.status in [200, 404]
+    retries: 30
+    delay: 10
 
   - name: Add user to groups
     ansible.builtin.uri:
@@ -50,3 +53,7 @@
     - item.json is defined
     loop_control:
       label: "{{ item.item.name }} ({{ item.item.access_level }})"
+    register: r_add_to_groups
+    until: r_add_to_groups.status in [201, 409]
+    retries: 30
+    delay: 10
