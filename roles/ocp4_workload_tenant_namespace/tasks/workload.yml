@@ -118,8 +118,6 @@
         selector:
           annotations:
             openshift.io/requester: "{{ ocp4_workload_tenant_namespace_username }}"
-          # Remove the old label selector when updating an existing quota.
-          labels: null
 
 - name: Apply ResourceQuota to namespace
   when: not (ocp4_workload_tenant_namespace_use_cluster_quota | bool)
