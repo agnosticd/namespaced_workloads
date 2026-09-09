@@ -10,10 +10,14 @@
       ansible.builtin.include_tasks: s4.yaml
     - name: Include secrets tasks
       ansible.builtin.include_tasks: secrets.yaml
+    - name: Include Redis tasks
+      ansible.builtin.include_tasks: redis.yaml
     - name: Include backend tasks
       ansible.builtin.include_tasks: backend.yaml
     - name: Include database migration tasks
       ansible.builtin.include_tasks: migrate.yaml
+    - name: Include worker tasks
+      ansible.builtin.include_tasks: worker.yaml
     - name: Include frontend tasks
       ansible.builtin.include_tasks: frontend.yaml
     - name: Include OAuth tasks

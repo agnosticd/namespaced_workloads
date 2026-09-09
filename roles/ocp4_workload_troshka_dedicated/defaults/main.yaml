@@ -11,6 +11,11 @@ troshka_host_vcpus: 16
 troshka_host_memory_gb: 64
 troshka_host_disk_gb: 200
 
+# HTTP package repo for host VM dnf (required — no DVD ISO fallback)
+troshka_pkg_repo_url: ""
+troshka_pkg_repo_username: ""
+troshka_pkg_repo_password: ""
+
 # Central image repo
 troshka_seed_s3_endpoint: ""
 troshka_seed_s3_bucket: "troshka-gold-images"
