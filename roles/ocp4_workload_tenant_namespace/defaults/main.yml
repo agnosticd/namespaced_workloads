@@ -46,10 +46,10 @@ ocp4_workload_tenant_namespace_default_metadata: {}
 # - suffix: mydb   # no quota/limit_range/metadata — uses role defaults
 ocp4_workload_tenant_namespace_suffixes: []
 
-# Use an OpenShift ClusterResourceQuota (CRQ) scoped to the tenant label.
-# This gives the user a shared resource pool across all their namespaces
-# rather than fixed per-namespace caps — useful when namespace boundaries
-# are not known at design time.
+# Use an OpenShift ClusterResourceQuota (CRQ) scoped to the user's
+# openshift.io/requester annotation. This shares a resource pool across
+# role-created namespaces and projects requested by the user. Additional
+# namespaces created by privileged automation must set that annotation.
 # When false, a per-namespace ResourceQuota is applied instead.
 ocp4_workload_tenant_namespace_use_cluster_quota: true
 

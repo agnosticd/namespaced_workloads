@@ -6,7 +6,7 @@ Creates one or more OpenShift namespaces for a tenant user, applies resource con
 
 - Creates namespaces named `{username}-{suffix}`, or a single namespace named after the user when no suffixes are defined
 - Applies a `LimitRange` to every namespace to set container resource defaults
-- Creates a `ClusterResourceQuota` (default) scoped to all tenant namespaces via a shared `tenant:` label, giving the user a flexible resource pool rather than fixed per-namespace caps
+- Creates a `ClusterResourceQuota` (default) selecting namespaces by the user's `openshift.io/requester` annotation, giving the user a shared resource pool
 - Grants the user the configured RBAC role in each namespace
 
 ## Usage
@@ -24,3 +24,13 @@ ocp4_workload_tenant_namespace_suffixes:
 Leave `suffixes` empty to create a single namespace named after the user.
 
 See [`defaults/main.yml`](defaults/main.yml) for all variables and their descriptions, including quota sizing and how to switch between ClusterResourceQuota and per-namespace ResourceQuota.
+
+## Cluster quota scope
+
+With cluster quota enabled, the role sets `openshift.io/requester` to `ocp4_workload_tenant_namespace_username` on every namespace it creates. This annotation takes precedence over custom namespace metadata. OpenShift also sets it on projects requested by that user through the ProjectRequest API (for example, `oc new-project`), so those projects share the same quota without needing a tenant label.
+
+Additional namespaces created directly by privileged automation, including GitOps, must explicitly carry the same requester annotation to join the quota. Quota membership does not apply this role's LimitRange or RBAC to those namespaces. Cleanup still deletes only the namespaces declared through this role, not other namespaces matching the quota.
+
+When upgrading from the tenant-label selector, rerunning the role annotates its managed namespaces and replaces the existing quota selector. External namespaces with only the old `tenant` label must receive the requester annotation before migration to remain covered. Existing labels and other custom metadata are preserved.
+
+With `ocp4_workload_tenant_namespace_use_cluster_quota: false`, per-namespace ResourceQuota behavior is unchanged and the role does not add the requester annotation.

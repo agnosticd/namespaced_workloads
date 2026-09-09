@@ -49,7 +49,7 @@
     label: "{{ item.suffix }}"
 
 # -----------------------------------------------------------------------
-# Create namespaces — label with tenant for CRQ selector targeting
+# Create namespaces — identify the requester for CRQ selector targeting
 # -----------------------------------------------------------------------
 - name: Create tenant namespace
   kubernetes.core.k8s:
@@ -60,7 +60,13 @@
     definition:
       apiVersion: v1
       kind: Namespace
-      metadata: "{{ item.metadata | ansible.builtin.combine({'name': item.name}) }}"
+      metadata: >-
+        {{ item.metadata | ansible.builtin.combine(
+             {'name': item.name},
+             {'annotations': {'openshift.io/requester': ocp4_workload_tenant_namespace_username}}
+             if (ocp4_workload_tenant_namespace_use_cluster_quota | bool) else {},
+             recursive=True
+           ) }}
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
@@ -110,9 +116,10 @@
         quota:
           hard: "{{ ocp4_workload_tenant_namespace_default_quota }}"
         selector:
-          labels:
-            matchLabels:
-              tenant: "{{ ocp4_workload_tenant_namespace_username }}"
+          annotations:
+            openshift.io/requester: "{{ ocp4_workload_tenant_namespace_username }}"
+          # Remove the old label selector when updating an existing quota.
+          labels: null
 
 - name: Apply ResourceQuota to namespace
   when: not (ocp4_workload_tenant_namespace_use_cluster_quota | bool)
