@@ -27,8 +27,8 @@ See [`defaults/main.yml`](defaults/main.yml) for all variables and their descrip
 
 ## Cluster quota scope
 
-With cluster quota enabled, the role sets `openshift.io/requester` to `ocp4_workload_tenant_namespace_username` on every namespace it creates, including a single namespace with no suffixes. Existing labels and other metadata are preserved; the requester annotation takes precedence over custom metadata. OpenShift also sets it on projects requested by that user through the ProjectRequest API (for example, `oc new-project`), so those projects share the same quota without needing a tenant label.
+The role sets `openshift.io/requester` to `ocp4_workload_tenant_namespace_username` on every namespace it creates, including a single namespace with no suffixes, regardless of quota mode. Existing labels and other metadata are preserved; the requester annotation takes precedence over custom metadata. OpenShift also sets it on projects requested by that user through the ProjectRequest API (for example, `oc new-project`), so those projects share the same quota without needing a tenant label.
 
 Additional namespaces created directly by privileged automation, including GitOps, must explicitly carry the same requester annotation to join the quota. Quota membership does not apply this role's LimitRange or RBAC to those namespaces. Cleanup still deletes only the namespaces declared through this role, not other namespaces matching the quota.
 
-With `ocp4_workload_tenant_namespace_use_cluster_quota: false`, per-namespace ResourceQuota behavior is unchanged and the role does not add the requester annotation.
+With `ocp4_workload_tenant_namespace_use_cluster_quota: false`, a per-namespace ResourceQuota is applied instead of a ClusterResourceQuota — the requester annotation is still set.

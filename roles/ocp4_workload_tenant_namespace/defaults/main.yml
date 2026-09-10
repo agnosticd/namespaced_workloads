@@ -50,7 +50,8 @@ ocp4_workload_tenant_namespace_suffixes: []
 # openshift.io/requester annotation. This shares a resource pool across
 # role-created namespaces and projects requested by the user. Additional
 # namespaces created by privileged automation must set that annotation.
-# When false, a per-namespace ResourceQuota is applied instead.
+# When false, a per-namespace ResourceQuota is applied instead — the role
+# still sets the requester annotation on every namespace either way.
 ocp4_workload_tenant_namespace_use_cluster_quota: true
 
 # Total resource pool for the tenant.
