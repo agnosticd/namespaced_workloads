@@ -6,6 +6,10 @@ ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_
 # User granted access to each namespace and used as the namespace name/prefix.
 ocp4_workload_tenant_namespace_username: "user-{{ guid }}"
 
+# Provision UUID applied as the demo.redhat.com/tenant-uuid label on every
+# namespace the role creates.
+ocp4_workload_tenant_namespace_uuid: "{{ guid }}"
+
 # RBAC role bound to the user in each namespace.
 ocp4_workload_tenant_namespace_role: admin
 
