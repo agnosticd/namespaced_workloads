@@ -1,0 +1,18 @@
+---
+# Create tenant authentication user based on provider type
+# Note: This role only creates the user in the auth system and grants namespace access.
+# It does NOT create the namespaces themselves - use ocp4_workload_tenant_namespace for that.
+
+- name: Setup htpasswd user
+  when: ocp4_workload_tenant_authentication_user_provider == 'htpasswd'
+  ansible.builtin.include_tasks: setup_htpasswd.yml
+
+- name: Setup keycloak user
+  when: ocp4_workload_tenant_authentication_user_provider == 'keycloak'
+  ansible.builtin.include_tasks: setup_keycloak.yml
+
+- name: Setup RBAC for tenant user
+  when:
+  - ocp4_workload_tenant_authentication_user_create_rbac | bool
+  - ocp4_workload_tenant_namespace_name is defined
+  ansible.builtin.include_tasks: setup_rbac.yml

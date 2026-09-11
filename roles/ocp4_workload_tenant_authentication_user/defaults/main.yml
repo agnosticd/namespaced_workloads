@@ -1,0 +1,33 @@
+---
+# Tenant authentication user defaults
+# Supports both htpasswd and keycloak authentication providers
+
+# Authentication provider: htpasswd or keycloak
+ocp4_workload_tenant_authentication_user_provider: htpasswd
+
+# Username for the tenant user
+ocp4_workload_tenant_authentication_user_username: "{{ lab_user | default('user1') }}"
+
+# Password for the tenant user
+ocp4_workload_tenant_authentication_user_password: ""
+
+# Password length if password needs to be generated
+ocp4_workload_tenant_authentication_user_password_length: 16
+
+# Whether to create RBAC for the user (namespace access)
+ocp4_workload_tenant_authentication_user_create_rbac: true
+
+# -----------------------------------------------
+# HTPasswd provider settings
+# -----------------------------------------------
+ocp4_workload_tenant_authentication_user_htpasswd_secret_name: htpasswd
+ocp4_workload_tenant_authentication_user_htpasswd_secret_namespace: openshift-config
+
+# -----------------------------------------------
+# Keycloak provider settings
+# -----------------------------------------------
+ocp4_workload_tenant_authentication_user_keycloak_namespace: keycloak
+ocp4_workload_tenant_authentication_user_keycloak_realm: master
+ocp4_workload_tenant_authentication_user_keycloak_email: "{{ ocp4_workload_tenant_authentication_user_username }}@example.com"
+ocp4_workload_tenant_authentication_user_keycloak_firstname: "{{ ocp4_workload_tenant_authentication_user_username }}"
+ocp4_workload_tenant_authentication_user_keycloak_lastname: "User"

@@ -15,6 +15,14 @@
   ansible.builtin.set_fact:
     _tenant_namespaces: []
 
+- name: Set namespace identity metadata fact
+  ansible.builtin.set_fact:
+    _tenant_namespace_identity_metadata:
+      annotations:
+        openshift.io/requester: "{{ ocp4_workload_tenant_namespace_username }}"
+      labels:
+        demo.redhat.com/tenant-uuid: "{{ ocp4_workload_tenant_namespace_uuid }}"
+
 - name: Build namespace list — single namespace (no suffixes defined)
   when: ocp4_workload_tenant_namespace_suffixes | length == 0
   ansible.builtin.set_fact:
@@ -22,7 +30,8 @@
       - name: "{{ ocp4_workload_tenant_namespace_username }}"
         quota: "{{ ocp4_workload_tenant_namespace_default_quota }}"
         limit_range: "{{ ocp4_workload_tenant_namespace_default_limit_range }}"
-        metadata: "{{ ocp4_workload_tenant_namespace_default_metadata }}"
+        metadata: "{{ ocp4_workload_tenant_namespace_default_metadata
+          | ansible.builtin.combine(_tenant_namespace_identity_metadata, recursive=True) }}"
 
 - name: Build namespace list — from suffix entries
   when: ocp4_workload_tenant_namespace_suffixes | length > 0
@@ -34,22 +43,14 @@
            'limit_range': item.limit_range | default(ocp4_workload_tenant_namespace_default_limit_range),
            'metadata': (item.metadata | default({}))
               | ansible.builtin.combine(ocp4_workload_tenant_namespace_default_metadata, recursive=True)
-              | ansible.builtin.combine(
-                  {
-                    "labels": {
-                      "created-by": "agnosticd",
-                      "tenant": ocp4_workload_tenant_namespace_username
-                    }
-                  },
-                  recursive=True
-                ),
+              | ansible.builtin.combine(_tenant_namespace_identity_metadata, recursive=True),
          }] }}
   loop: "{{ ocp4_workload_tenant_namespace_suffixes }}"
   loop_control:
     label: "{{ item.suffix }}"
 
 # -----------------------------------------------------------------------
-# Create namespaces — label with tenant for CRQ selector targeting
+# Create namespaces — metadata already carries the requester annotation
 # -----------------------------------------------------------------------
 - name: Create tenant namespace
   kubernetes.core.k8s:
@@ -110,9 +111,8 @@
         quota:
           hard: "{{ ocp4_workload_tenant_namespace_default_quota }}"
         selector:
-          labels:
-            matchLabels:
-              tenant: "{{ ocp4_workload_tenant_namespace_username }}"
+          annotations:
+            openshift.io/requester: "{{ ocp4_workload_tenant_namespace_username }}"
 
 - name: Apply ResourceQuota to namespace
   when: not (ocp4_workload_tenant_namespace_use_cluster_quota | bool)

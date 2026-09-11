@@ -1,0 +1,14 @@
+---
+# Remove tenant authentication user
+# Note: RBAC cleanup is handled by tenant_namespace workload (deleting namespaces removes RoleBindings)
+
+- name: Remove htpasswd user
+  when: ocp4_workload_tenant_authentication_user_provider == 'htpasswd'
+  ansible.builtin.include_tasks: remove_htpasswd.yml
+
+- name: Remove keycloak user
+  when: ocp4_workload_tenant_authentication_user_provider == 'keycloak'
+  ansible.builtin.include_tasks: remove_keycloak.yml
+
+- name: Remove OCP User and Identity objects
+  ansible.builtin.include_tasks: remove_ocp_user.yml

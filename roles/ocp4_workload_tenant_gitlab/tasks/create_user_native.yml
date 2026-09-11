@@ -26,6 +26,9 @@
     validate_certs: false
     status_code: [201, 409]
   register: r_create_user
+  until: r_create_user.status in [201, 409]
+  retries: 30
+  delay: 10
 
 - name: Get user ID
   ansible.builtin.uri:
@@ -36,6 +39,9 @@
     validate_certs: false
     status_code: 200
   register: r_user_info
+  until: r_user_info.status == 200
+  retries: 30
+  delay: 10
 
 - name: Set user ID fact
   ansible.builtin.set_fact:

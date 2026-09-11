@@ -1,27 +1,13 @@
 ---
 # ==================================================================
-# Get GitLab instance information
+# Set GitLab URL from apps domain
 # ==================================================================
-
-- name: Get GitLab route
-  kubernetes.core.k8s_info:
-    host: "{{ ocp4_workload_tenant_gitlab_openshift_api_url }}"
-    api_key: "{{ ocp4_workload_tenant_gitlab_openshift_api_token }}"
-    validate_certs: false
-    api_version: route.openshift.io/v1
-    kind: Route
-    name: "{{ ocp4_workload_tenant_gitlab_route_name }}"
-    namespace: "{{ ocp4_workload_tenant_gitlab_namespace }}"
-  register: r_gitlab_route
-  retries: 10
-  delay: 30
-  until:
-  - r_gitlab_route.resources is defined
-  - r_gitlab_route.resources | length > 0
 
 - name: Set GitLab URL fact
   ansible.builtin.set_fact:
-    _ocp4_workload_tenant_gitlab_url: "https://{{ r_gitlab_route.resources[0].spec.host }}"
+    _ocp4_workload_tenant_gitlab_url: >-
+      https://{{ ocp4_workload_tenant_gitlab_route_name }}-{{
+      ocp4_workload_tenant_gitlab_namespace }}.{{ sandbox_openshift_apps_domain }}
 
 - name: Get GitLab automation token
   kubernetes.core.k8s_info:
@@ -74,14 +60,13 @@
 # Save user information
 # ==================================================================
 
-# NOTE: agnosticd_user_info disabled for standalone testing
-# - name: Save GitLab user information
-#   agnosticd.core.agnosticd_user_info:
-#     data:
-#       gitlab_url: "{{ _ocp4_workload_tenant_gitlab_url }}"
-#       gitlab_username: "{{ ocp4_workload_tenant_gitlab_username }}"
-#       gitlab_password: "{{ ocp4_workload_tenant_gitlab_password }}"
-#       gitlab_user_group: "{{ ocp4_workload_tenant_gitlab_username }}"
+- name: Save GitLab user information
+  agnosticd.core.agnosticd_user_info:
+    data:
+      gitlab_url: "{{ _ocp4_workload_tenant_gitlab_url }}"
+      gitlab_username: "{{ ocp4_workload_tenant_gitlab_username }}"
+      gitlab_password: "{{ ocp4_workload_tenant_gitlab_password }}"
+      gitlab_user_group: "{{ ocp4_workload_tenant_gitlab_username }}"
 
 - name: Display GitLab user information
   ansible.builtin.debug:
