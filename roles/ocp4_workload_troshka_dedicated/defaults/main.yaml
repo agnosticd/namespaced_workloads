@@ -22,11 +22,6 @@ troshka_seed_s3_bucket: "troshka-gold-images"
 troshka_seed_s3_access_key: ""
 troshka_seed_s3_secret_key: ""
 
-# Host package repo (central-S4 HTTP + basic auth). When set, hosts install
-# troshkad deps from it instead of mounting the RHEL DVD ISO.
-troshka_pkg_repo_url: ""
-troshka_pkg_repo_username: ""
-troshka_pkg_repo_password: ""
 troshka_seed_images: []
 
 # Resource limits
