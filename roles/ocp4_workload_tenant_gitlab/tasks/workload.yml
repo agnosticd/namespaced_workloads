@@ -5,9 +5,7 @@
 
 - name: Set GitLab URL fact
   ansible.builtin.set_fact:
-    _ocp4_workload_tenant_gitlab_url: >-
-      https://{{ ocp4_workload_tenant_gitlab_route_name }}-{{
-      ocp4_workload_tenant_gitlab_namespace }}.{{ sandbox_openshift_apps_domain }}
+    _ocp4_workload_tenant_gitlab_url: "https://{{ ocp4_workload_tenant_gitlab_route_name }}-{{ ocp4_workload_tenant_gitlab_namespace }}.{{ sandbox_openshift_apps_domain }}"
 
 - name: Get GitLab automation token
   kubernetes.core.k8s_info:
