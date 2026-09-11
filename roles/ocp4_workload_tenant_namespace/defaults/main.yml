@@ -6,6 +6,10 @@ ocp4_workload_tenant_namespace_openshift_api_token: "{{ cluster_admin_agnosticd_
 # User granted access to each namespace and used as the namespace name/prefix.
 ocp4_workload_tenant_namespace_username: "user-{{ guid }}"
 
+# Provision UUID applied as the demo.redhat.com/tenant-uuid label on every
+# namespace the role creates.
+ocp4_workload_tenant_namespace_uuid: "{{ guid }}"
+
 # RBAC role bound to the user in each namespace.
 ocp4_workload_tenant_namespace_role: admin
 
@@ -46,11 +50,12 @@ ocp4_workload_tenant_namespace_default_metadata: {}
 # - suffix: mydb   # no quota/limit_range/metadata — uses role defaults
 ocp4_workload_tenant_namespace_suffixes: []
 
-# Use an OpenShift ClusterResourceQuota (CRQ) scoped to the tenant label.
-# This gives the user a shared resource pool across all their namespaces
-# rather than fixed per-namespace caps — useful when namespace boundaries
-# are not known at design time.
-# When false, a per-namespace ResourceQuota is applied instead.
+# Use an OpenShift ClusterResourceQuota (CRQ) scoped to the user's
+# openshift.io/requester annotation. This shares a resource pool across
+# role-created namespaces and projects requested by the user. Additional
+# namespaces created by privileged automation must set that annotation.
+# When false, a per-namespace ResourceQuota is applied instead — the role
+# still sets the requester annotation on every namespace either way.
 ocp4_workload_tenant_namespace_use_cluster_quota: true
 
 # Total resource pool for the tenant.
