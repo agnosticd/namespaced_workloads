@@ -50,3 +50,28 @@
     - name: Report seed status
       ansible.builtin.debug:
         msg: "Library synced from central: {{ (_library.stdout | from_json) | length }} items"
+
+    - name: Wait until all seed patterns are present
+      when: troshka_seed_patterns | length > 0
+      kubernetes.core.k8s_exec:
+        namespace: "{{ troshka_namespace }}"
+        pod: "{{ _backend_pod }}"
+        container: backend
+        command: >-
+          curl -sf http://localhost:8200/api/v1/patterns/
+          -H "X-Forwarded-Email: {{ _requester_identity }}"
+      register: _patterns
+      until:
+        - _patterns.rc == 0
+        - (troshka_seed_patterns | map(attribute='name') | list)
+          | difference((_patterns.stdout | from_json) | map(attribute='name') | list)
+          | length == 0
+      retries: 30
+      delay: 10
+
+    - name: Report pattern seed status
+      when: troshka_seed_patterns | length > 0
+      ansible.builtin.debug:
+        msg: >-
+          Patterns synced from central:
+          {{ (troshka_seed_patterns | map(attribute='name') | list) | join(', ') }}

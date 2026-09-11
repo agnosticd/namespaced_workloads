@@ -23,6 +23,10 @@ troshka_seed_s3_access_key: ""
 troshka_seed_s3_secret_key: ""
 troshka_seed_images: []
 
+# Patterns expected in central S4 (synced via /library/sync-central).
+# Each entry is a display name matched against Pattern.name after import.
+troshka_seed_patterns: []
+
 # Resource limits
 troshka_backend_cpu_request: "250m"
 troshka_backend_memory_limit: "2Gi"
