@@ -21,6 +21,7 @@ troshka_seed_s3_endpoint: ""
 troshka_seed_s3_bucket: "troshka-gold-images"
 troshka_seed_s3_access_key: ""
 troshka_seed_s3_secret_key: ""
+
 troshka_seed_images: []
 
 # Patterns expected in central S4 (synced via /library/sync-central).
